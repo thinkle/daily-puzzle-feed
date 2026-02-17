@@ -143,6 +143,7 @@ Define indexes only as needed by actual query shapes.
 - Keep schema/types in `src/lib/model/*`.
 - Keep auth/session state in `src/lib/auth/*`.
 - Keep UI pages/components thin; business logic in stores/services.
+- Prefer `contain-css-svelte` primitives (`Form`, `FormItem`, `Input`, `Select`, `Button`, etc.) over raw HTML controls unless there is a clear documented reason not to.
 - Prefer idempotent writes (`setDoc(..., { merge: true })`) when practical.
 - For UI theming, treat foreground/background as a pair: when setting `bg` (or `--*-bg`), also set the matching `fg` (or `--*-fg`) in the same change to preserve contrast and accessibility.
 
