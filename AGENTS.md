@@ -149,6 +149,14 @@ Define indexes only as needed by actual query shapes.
 
 Agents should optimize for clear, auditable progress. Work should be easy to review and replay.
 
+### PR Gate (Required)
+
+Every PR should include:
+
+- A clear Storybook story for each new or materially changed UI component/state.
+- Clear TypeScript types for non-trivial logic/data changes (no implicit `any` drift).
+- Automated tests where practical (unit/integration/component), plus explicit notes on any gaps.
+
 ### Branching
 
 - Start work on a feature branch before making code changes when git is available.
@@ -170,11 +178,23 @@ Agents should optimize for clear, auditable progress. Work should be easy to rev
 
 ### Testing Expectations
 
-- For each functional change, run relevant checks before finishing:
-- `npm run check` for type/svelte checks
-- `npm run test:unit -- --run` for logic/unit coverage where applicable
+- For each functional change, run relevant checks before finishing.
+- `npm run check` for type/svelte checks.
+- `npm run test:unit -- --run` for logic/unit coverage where applicable.
 - For UI component/state work, add or update Storybook stories demonstrating key states and interactions.
 - For meaningful UI changes, verify Storybook build (`npm run build-storybook`) before handoff when feasible.
+
+### Delivery Workflow (Default Order)
+
+1. Confirm work is on a development branch.
+2. Implement in small increments with clear commits as improvements land.
+3. Before PR prep, request/collect user feedback on behavior/UI and close test gaps.
+4. Prepare PR summary with test evidence, then push branch.
+
+### Architecture Checkpoints
+
+- Before major feature phases, confirm the current dev plan and component architecture still match scope.
+- If architecture changes, update `AGENTS.md` and `TODO.md` in the same branch before deeper implementation.
 
 ### PR/Handoff Summary
 
