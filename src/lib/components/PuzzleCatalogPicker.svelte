@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { Button, Card, Form, FormItem, GridLayout, Input, Tag, Tile } from 'contain-css-svelte';
+	import {
+		Button,
+		Container,
+		Form,
+		FormItem,
+		GridLayout,
+		Input,
+		Tag,
+		Tile
+	} from 'contain-css-svelte';
 	import type { PuzzleDefinition } from '$lib/model/puzzle';
 
 	type Props = {
@@ -23,12 +32,8 @@
 
 	const normalizedFilter = $derived.by(() => filterText.trim().toLowerCase());
 
-	const visibleCatalog = $derived.by(() => {
-		if (!normalizedFilter) {
-			return catalog;
-		}
-
-		return catalog.filter((puzzle) => {
+	const visibleCatalog = $derived(
+		catalog.filter((puzzle) => {
 			const searchable = [
 				puzzle.title,
 				puzzle.description ?? '',
@@ -39,8 +44,8 @@
 				.toLowerCase();
 
 			return searchable.includes(normalizedFilter);
-		});
-	});
+		})
+	);
 
 	const selectedAddableCount = $derived.by(() => {
 		const added = new Set(addedPuzzleIds);
@@ -87,7 +92,7 @@
 	}
 </script>
 
-<Card>
+<Container maxWidth="1800px" bg="var(--container-bg)" fg="var(--container-fg)">
 	<h2>Browse Puzzle Catalog</h2>
 	<p>Select puzzles and add them to your feed.</p>
 
@@ -98,48 +103,43 @@
 		</FormItem>
 	</Form>
 
-	<div
-		class="catalog-grid-wrap"
-		style={`--item-width: ${itemWidth}; --gap: ${gridGap}; --grid-justify-content: start; --grid-place-content: start;`}
-	>
-		<GridLayout>
-			{#each visibleCatalog as puzzle (puzzle.id)}
-				<Tile
-					selectable
-					checked={isSelected(puzzle.id)}
-					onchange={(event) => updateSelection(puzzle.id, event)}
-				>
-					<div class="tile-content">
-						<h3>{puzzle.title}</h3>
-						<p>{puzzle.description ?? 'No description yet.'}</p>
-						<div class="tag-row">
-							{#each puzzle.tags as tag (tag)}
-								<Tag>{tag}</Tag>
-							{/each}
-						</div>
-						<div class="tag-row">
-							{#if puzzle.archive.enabled}
-								<Tag info>archive</Tag>
-							{/if}
-							{#if puzzle.unlimited.enabled}
-								<Tag success>unlimited</Tag>
-							{/if}
-							{#if isAdded(puzzle.id)}
-								<Tag primary>in feed</Tag>
-							{/if}
-						</div>
+	<GridLayout --item-width="var(--tile-width)" --tag-font-size="0.7em">
+		{#each visibleCatalog as puzzle (puzzle.id)}
+			<Tile
+				selectable
+				checked={isSelected(puzzle.id)}
+				onclick={(event) => updateSelection(puzzle.id, event)}
+			>
+				<div class="tile-content">
+					<h3>{puzzle.title}</h3>
+					<p>{puzzle.description ?? 'No description yet.'}</p>
+					<div class="tag-row">
+						{#each puzzle.tags as tag (tag)}
+							<Tag>{tag}</Tag>
+						{/each}
 					</div>
-				</Tile>
-			{/each}
-		</GridLayout>
-	</div>
+					<div class="tag-row">
+						{#if puzzle.archive.enabled}
+							<Tag>archive</Tag>
+						{/if}
+						{#if puzzle.unlimited.enabled}
+							<Tag>unlimited</Tag>
+						{/if}
+						{#if isAdded(puzzle.id)}
+							<Tag>in feed</Tag>
+						{/if}
+					</div>
+				</div>
+			</Tile>
+		{/each}
+	</GridLayout>
 
 	<div class="actions">
 		<Button primary onclick={addSelectedPuzzles} disabled={selectedAddableCount === 0}>
 			Add Selected ({selectedAddableCount})
 		</Button>
 	</div>
-</Card>
+</Container>
 
 <style>
 	h2,
