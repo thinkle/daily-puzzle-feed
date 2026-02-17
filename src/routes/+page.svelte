@@ -15,6 +15,7 @@
 	import PuzzleSubmitForm from '$lib/components/PuzzleSubmitForm.svelte';
 	import { listApprovedPuzzles } from '$lib/data/puzzles';
 	import { resolvePuzzleUrl } from '$lib/data/puzzle-resolver';
+	import { env as publicEnv } from '$env/dynamic/public';
 	import {
 		approvePuzzleSubmission,
 		listPendingPuzzleSubmissions,
@@ -31,12 +32,10 @@
 		type PuzzleSubmission
 	} from '$lib/model/puzzle';
 
-	const ADMIN_EMAILS = (
-		((import.meta.env.PUBLIC_ADMIN_EMAILS as string | undefined) ?? '')
-			.split(',')
-			.map((email) => email.trim().toLowerCase())
-			.filter(Boolean)
-	);
+	const ADMIN_EMAILS = (publicEnv.PUBLIC_ADMIN_EMAILS ?? '')
+		.split(',')
+		.map((email) => email.trim().toLowerCase())
+		.filter(Boolean);
 
 	let isAuthActionPending = $state(false);
 	let localAuthError = $state('');
