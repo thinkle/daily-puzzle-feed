@@ -5,8 +5,10 @@ import {
 	missingFirebaseEnvVars
 } from '$lib/firebase/client';
 import {
+	createUserWithEmailAndPassword,
 	GoogleAuthProvider,
 	onAuthStateChanged,
+	signInWithEmailAndPassword,
 	signInWithPopup,
 	signOut,
 	type User
@@ -96,4 +98,20 @@ export async function signOutCurrentUser() {
 	}
 
 	await signOut(getFirebaseAuth());
+}
+
+export async function signInWithEmailPassword(email: string, password: string) {
+	if (!browser) {
+		return;
+	}
+
+	await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+}
+
+export async function createEmailPasswordAccount(email: string, password: string) {
+	if (!browser) {
+		return;
+	}
+
+	await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
 }
