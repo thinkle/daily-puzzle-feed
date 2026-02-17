@@ -1,13 +1,7 @@
 import type { Preview } from '@storybook/sveltekit';
-import ContainBase from '../src/lib/components/ContainBase.svelte';
+import '../src/lib/components/ContainBase.svelte';
 
 const preview: Preview = {
-	decorators: [
-		(Story) => ({
-			Component: ContainBase,
-			slots: { default: Story }
-		})
-	],
 	parameters: {
 		controls: {
 			matchers: {

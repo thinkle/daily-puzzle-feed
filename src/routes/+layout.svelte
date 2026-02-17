@@ -9,6 +9,5 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<ContainBase>
-	{@render children()}
-</ContainBase>
+<ContainBase />
+{@render children()}
