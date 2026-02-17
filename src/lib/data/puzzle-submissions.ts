@@ -23,6 +23,7 @@ import {
 	type DocumentData,
 	type Timestamp
 } from 'firebase/firestore';
+import { FirebaseError } from 'firebase/app';
 
 type SavePuzzleSubmissionArgs = {
 	uid: string;
@@ -67,6 +68,31 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 function timestampToMs(value: unknown) {
 	const asTimestamp = value as Timestamp | undefined;
 	return asTimestamp?.toMillis?.();
+}
+
+function stripUndefinedDeep(value: unknown): unknown {
+	if (value === undefined) {
+		return undefined;
+	}
+
+	if (Array.isArray(value)) {
+		return value
+			.map((entry) => stripUndefinedDeep(entry))
+			.filter((entry) => entry !== undefined);
+	}
+
+	if (value && typeof value === 'object') {
+		const cleaned: Record<string, unknown> = {};
+		for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+			const nextValue = stripUndefinedDeep(entry);
+			if (nextValue !== undefined) {
+				cleaned[key] = nextValue;
+			}
+		}
+		return cleaned;
+	}
+
+	return value;
 }
 
 function mapSubmission(docId: string, data: DocumentData): PuzzleSubmission {
@@ -141,6 +167,14 @@ export async function savePuzzleSubmission({
 
 	const canonicalUrlNormalized = normalizePuzzleUrl(draft.canonicalUrl);
 	const tags = normalizeTags(draft.tags);
+	const cleanedMetadata = stripUndefinedDeep(metadata);
+	const firestoreMetadata =
+		cleanedMetadata &&
+		typeof cleanedMetadata === 'object' &&
+		!Array.isArray(cleanedMetadata) &&
+		Object.keys(cleanedMetadata as Record<string, unknown>).length === 0
+			? null
+			: cleanedMetadata ?? null;
 
 	try {
 		const docRef = await addDoc(collection(getFirebaseDb(), 'puzzle_submissions'), {
@@ -176,14 +210,18 @@ export async function savePuzzleSubmission({
 				notes: draft.unlimitedEnabled ? draft.unlimitedNotes?.trim() || null : null
 			},
 			resolveSource,
-			metadata: metadata ?? null,
+			metadata: firestoreMetadata,
 			createdAt: serverTimestamp(),
 			updatedAt: serverTimestamp()
 		});
 
 		return docRef.id;
-	} catch {
-		return null;
+	} catch (error) {
+		if (error instanceof FirebaseError) {
+			throw new Error(`Failed to save submission (${error.code}): ${error.message}`);
+		}
+
+		throw error instanceof Error ? error : new Error('Failed to save submission.');
 	}
 }
 
@@ -192,21 +230,34 @@ export async function listPendingPuzzleSubmissions(maxResults = 50): Promise<Puz
 		return [];
 	}
 
-	try {
-		const submissionSnap = await getDocs(
-			query(
-				collection(getFirebaseDb(), 'puzzle_submissions'),
-				where('status', '==', 'pending'),
-				limit(maxResults)
-			)
+	const db = getFirebaseDb();
+	const submissionsById = new Map<string, PuzzleSubmission>();
+
+	const pendingSnap = await getDocs(
+		query(collection(db, 'puzzle_submissions'), where('status', '==', 'pending'), limit(maxResults))
+	);
+	for (const submissionDoc of pendingSnap.docs) {
+		const mapped = mapSubmission(submissionDoc.id, submissionDoc.data());
+		submissionsById.set(mapped.id, mapped);
+	}
+
+	// Backfill compatibility: older submissions may not have `status`.
+	if (submissionsById.size < maxResults) {
+		const fallbackSnap = await getDocs(
+			query(collection(db, 'puzzle_submissions'), limit(maxResults * 3))
 		);
 
-		return submissionSnap.docs
-			.map((submissionDoc) => mapSubmission(submissionDoc.id, submissionDoc.data()))
-			.sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
-	} catch {
-		return [];
+		for (const submissionDoc of fallbackSnap.docs) {
+			const mapped = mapSubmission(submissionDoc.id, submissionDoc.data());
+			if (mapped.status === 'pending') {
+				submissionsById.set(mapped.id, mapped);
+			}
+		}
 	}
+
+	return [...submissionsById.values()]
+		.sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0))
+		.slice(0, maxResults);
 }
 
 export async function approvePuzzleSubmission({
@@ -251,6 +302,32 @@ export async function approvePuzzleSubmission({
 
 	const canonicalPuzzle = createCanonicalPuzzleFromDraft(draft);
 	const canonicalRef = doc(db, 'puzzles', canonicalPuzzle.id);
+	const archive = {
+		enabled: canonicalPuzzle.archive.enabled,
+		...(canonicalPuzzle.archive.url ? { url: canonicalPuzzle.archive.url } : {}),
+		...(canonicalPuzzle.archive.urlTemplate
+			? { urlTemplate: canonicalPuzzle.archive.urlTemplate }
+			: {}),
+		...(canonicalPuzzle.archive.notes ? { notes: canonicalPuzzle.archive.notes } : {})
+	};
+	const unlimited = {
+		enabled: canonicalPuzzle.unlimited.enabled,
+		...(canonicalPuzzle.unlimited.url ? { url: canonicalPuzzle.unlimited.url } : {}),
+		...(canonicalPuzzle.unlimited.urlTemplate
+			? { urlTemplate: canonicalPuzzle.unlimited.urlTemplate }
+			: {}),
+		...(canonicalPuzzle.unlimited.notes ? { notes: canonicalPuzzle.unlimited.notes } : {})
+	};
+	const image = canonicalPuzzle.image
+		? {
+				mode: canonicalPuzzle.image.mode,
+				...(canonicalPuzzle.image.previewUrl ? { previewUrl: canonicalPuzzle.image.previewUrl } : {}),
+				...(canonicalPuzzle.image.customUrl ? { customUrl: canonicalPuzzle.image.customUrl } : {}),
+				...(canonicalPuzzle.image.storagePath ? { storagePath: canonicalPuzzle.image.storagePath } : {}),
+				...(canonicalPuzzle.image.approvedUrl ? { approvedUrl: canonicalPuzzle.image.approvedUrl } : {}),
+				...(canonicalPuzzle.image.faviconUrl ? { faviconUrl: canonicalPuzzle.image.faviconUrl } : {})
+			}
+		: null;
 
 	await runTransaction(db, async (transaction) => {
 		transaction.set(
@@ -263,9 +340,9 @@ export async function approvePuzzleSubmission({
 				description: canonicalPuzzle.description ?? null,
 				tags: canonicalPuzzle.tags,
 				siteName: canonicalPuzzle.siteName ?? null,
-				image: canonicalPuzzle.image ?? null,
-				archive: canonicalPuzzle.archive,
-				unlimited: canonicalPuzzle.unlimited,
+				image,
+				archive,
+				unlimited,
 				active: true,
 				source: 'canonical',
 				createdAt: serverTimestamp(),

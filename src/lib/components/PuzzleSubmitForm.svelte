@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Card, Checkbox, Form, FormItem, Input } from 'contain-css-svelte';
+	import { Button, Card, Checkbox, Container, Form, FormItem, Input } from 'contain-css-svelte';
 	import {
 		PUZZLE_TAG_LABELS,
 		PUZZLE_TAG_OPTIONS,
@@ -205,7 +205,7 @@
 	}
 </script>
 
-<Card>
+<Container>
 	<h2>Add Puzzle</h2>
 	<p>Paste a URL, look up metadata, then confirm details.</p>
 
@@ -239,7 +239,8 @@
 					{#each PUZZLE_TAG_OPTIONS as tag}
 						<Checkbox
 							checked={selectedTags.includes(tag)}
-							onchange={(event) => toggleTag(tag, (event.currentTarget as HTMLInputElement).checked)}
+							onchange={(event) =>
+								toggleTag(tag, (event.currentTarget as HTMLInputElement).checked)}
 						>
 							{PUZZLE_TAG_LABELS[tag]}
 						</Checkbox>
@@ -322,7 +323,7 @@
 	{#if submitted}
 		<p class="ok">Puzzle added to your feed and queued for review.</p>
 	{/if}
-</Card>
+</Container>
 
 <style>
 	h2,

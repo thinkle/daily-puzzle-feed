@@ -216,7 +216,7 @@
 		addPuzzlesToFeed([nextPuzzle]);
 
 		if ($authSession.status === 'signed_in' && $authSession.user) {
-			await savePuzzleSubmission({
+			const submissionId = await savePuzzleSubmission({
 				uid: $authSession.user.uid,
 				email: $authSession.user.email,
 				displayName: $authSession.user.displayName,
@@ -224,6 +224,15 @@
 				resolveSource: context.resolveSource,
 				metadata: context.metadata
 			});
+
+			if (!submissionId) {
+				dataError = 'Saved to your feed, but failed to queue this puzzle for admin review.';
+				return;
+			}
+
+			if (isCurrentUserAdmin) {
+				pendingSubmissions = await listPendingPuzzleSubmissions();
+			}
 		}
 	}
 
@@ -247,6 +256,8 @@
 				ensureCatalogPuzzle(approved);
 			}
 			pendingSubmissions = pendingSubmissions.filter((item) => item.id !== submission.id);
+		} catch (error) {
+			dataError = error instanceof Error ? error.message : 'Could not approve puzzle submission.';
 		} finally {
 			isReviewBusy = false;
 		}
@@ -268,6 +279,8 @@
 				}
 			});
 			pendingSubmissions = pendingSubmissions.filter((item) => item.id !== submission.id);
+		} catch (error) {
+			dataError = error instanceof Error ? error.message : 'Could not reject puzzle submission.';
 		} finally {
 			isReviewBusy = false;
 		}
@@ -310,6 +323,8 @@
 			pendingSubmissions = pendingSubmissions.map((item) =>
 				item.id === updated.id ? updated : item
 			);
+		} catch (error) {
+			dataError = error instanceof Error ? error.message : 'Could not save submission edits.';
 		} finally {
 			isReviewBusy = false;
 		}

@@ -4,7 +4,9 @@ import { resolve } from "node:path";
 const DEFAULT_URLS = [
 	"https://www.nytimes.com/games/wordle/index.html",
 	"https://wafflegame.net/daily",
-	"https://travle.earth"
+	"https://travle.earth",
+	"https://www.fogglegame.com",
+	"https://www.nordle.us",
 ];
 
 function readDotEnv(dotEnvPath = ".env") {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Card, Checkbox, Form, FormItem, Input, Tag, Tile } from 'contain-css-svelte';
+	import { Button, Checkbox, Form, FormItem, Input, Tag, Tile } from 'contain-css-svelte';
 	import {
 		getPuzzleDisplayImageUrl,
 		PUZZLE_TAG_LABELS,
@@ -106,7 +106,7 @@
 	}
 </script>
 
-<Card>
+<section class="admin-review-queue">
 	<h2>Admin Review Queue</h2>
 	<p>Approve or reject submitted puzzles.</p>
 
@@ -182,7 +182,7 @@
 			{/each}
 		</div>
 	{/if}
-</Card>
+</section>
 
 <style>
 	h2,
@@ -194,6 +194,11 @@
 	.queue-list {
 		display: grid;
 		gap: 0.75rem;
+	}
+
+	.admin-review-queue {
+		display: grid;
+		gap: 0.5rem;
 	}
 
 	.submission-content {
