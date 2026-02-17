@@ -148,79 +148,70 @@
 			onEmailSignUp={handleEmailSignUp}
 		/>
 	{:else}
-		<Container maxWidth="1400px" padding="1rem">
-			<div
-				class="feed-builder-wrap"
-				style="--item-width: min(44rem, 100%); --gap: 1rem; --grid-justify-content: start; --grid-place-content: start;"
-			>
-				<GridLayout>
-					<div class="grid-item feed-item">
-						<Card>
-							<h2>My Puzzle Feed</h2>
-							{#if feedPuzzles.length === 0}
-								<p>No puzzles added yet. Pick some from the catalog or submit your own.</p>
-							{:else}
-								<div
-									class="feed-puzzles-wrap"
-									style="--item-width: min(22rem, 100%); --gap: 0.75rem; --grid-justify-content: start; --grid-place-content: start;"
-								>
-									<GridLayout>
-										{#each feedPuzzles as puzzle (puzzle.id)}
-											<Tile>
-												<div class="tile-content">
-													<h3>{puzzle.title}</h3>
-													<div class="tag-row">
-														{#each puzzle.tags as tag (tag)}
-															<Tag>{tag}</Tag>
-														{/each}
-													</div>
-													<div class="feed-actions">
-														<ButtonLink
-															href={puzzle.canonicalUrl}
-															target="_blank"
-															rel="noopener noreferrer"
-														>
-															Play
-														</ButtonLink>
-														{#if puzzle.archive.enabled && puzzle.archive.url}
-															<ButtonLink
-																href={puzzle.archive.url}
-																target="_blank"
-																rel="noopener noreferrer"
-																secondary
-															>
-																Archive
-															</ButtonLink>
-														{/if}
-														{#if puzzle.unlimited.enabled && puzzle.unlimited.url}
-															<ButtonLink
-																href={puzzle.unlimited.url}
-																target="_blank"
-																rel="noopener noreferrer"
-																secondary
-															>
-																Unlimited
-															</ButtonLink>
-														{/if}
-														<Button onclick={() => removePuzzleFromFeed(puzzle.id)}>Remove</Button>
-													</div>
-												</div>
-											</Tile>
-										{/each}
-									</GridLayout>
-								</div>
-							{/if}
-						</Card>
-					</div>
-					<div class="grid-item catalog-item">
-						<PuzzleCatalogPicker
-							catalog={catalogPuzzles}
-							addedPuzzleIds={feedPuzzleIds}
-							onAddSelected={addPuzzlesToFeed}
-						/>
-						<PuzzleSubmitForm onSubmitPuzzle={addCustomPuzzle} />
-					</div>
-				</GridLayout>
+		<Container maxWidth="1280px" padding="1rem">
+			<div class="builder-stack">
+				<PuzzleCatalogPicker
+					catalog={catalogPuzzles}
+					addedPuzzleIds={feedPuzzleIds}
+					onAddSelected={addPuzzlesToFeed}
+					itemWidth="20rem"
+					gridGap="0.75rem"
+				/>
+
+				<Card>
+					<h2>My Puzzle Feed</h2>
+					{#if feedPuzzles.length === 0}
+						<p>No puzzles added yet. Pick some from the catalog or submit your own.</p>
+					{:else}
+						<div
+							class="feed-puzzles-wrap"
+							style="--item-width: 20rem; --gap: 0.75rem; --grid-justify-content: start; --grid-place-content: start;"
+						>
+							<GridLayout>
+								{#each feedPuzzles as puzzle (puzzle.id)}
+									<Tile>
+										<div class="tile-content">
+											<h3>{puzzle.title}</h3>
+											<div class="tag-row">
+												{#each puzzle.tags as tag (tag)}
+													<Tag>{tag}</Tag>
+												{/each}
+											</div>
+											<div class="feed-actions">
+												<ButtonLink href={puzzle.canonicalUrl} target="_blank" rel="noopener noreferrer">
+													Play
+												</ButtonLink>
+												{#if puzzle.archive.enabled && puzzle.archive.url}
+													<ButtonLink
+														href={puzzle.archive.url}
+														target="_blank"
+														rel="noopener noreferrer"
+														secondary
+													>
+														Archive
+													</ButtonLink>
+												{/if}
+												{#if puzzle.unlimited.enabled && puzzle.unlimited.url}
+													<ButtonLink
+														href={puzzle.unlimited.url}
+														target="_blank"
+														rel="noopener noreferrer"
+														secondary
+													>
+														Unlimited
+													</ButtonLink>
+												{/if}
+												<Button onclick={() => removePuzzleFromFeed(puzzle.id)}>Remove</Button>
+											</div>
+										</div>
+									</Tile>
+								{/each}
+							</GridLayout>
+						</div>
+					{/if}
+				</Card>
+
+				<PuzzleSubmitForm onSubmitPuzzle={addCustomPuzzle} />
 			</div>
 		</Container>
 	{/if}
@@ -246,19 +237,9 @@
 		margin: 0;
 	}
 
-	.grid-item {
-		align-self: start;
+	.builder-stack {
 		display: grid;
 		gap: 1rem;
-		width: min(100%, 45rem);
-	}
-
-	.feed-item {
-		width: min(100%, 42rem);
-	}
-
-	.catalog-item {
-		width: min(100%, 48rem);
 	}
 
 	.tile-content {

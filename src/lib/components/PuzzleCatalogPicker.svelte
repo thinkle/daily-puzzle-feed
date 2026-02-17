@@ -6,9 +6,17 @@
 		catalog: PuzzleDefinition[];
 		addedPuzzleIds?: string[];
 		onAddSelected?: (puzzles: PuzzleDefinition[]) => void;
+		itemWidth?: string;
+		gridGap?: string;
 	};
 
-	let { catalog, addedPuzzleIds = [], onAddSelected = () => {} }: Props = $props();
+	let {
+		catalog,
+		addedPuzzleIds = [],
+		onAddSelected = () => {},
+		itemWidth = '22rem',
+		gridGap = '0.75rem'
+	}: Props = $props();
 
 	let filterText = $state('');
 	let selectedPuzzleIds = $state<string[]>([]);
@@ -92,7 +100,7 @@
 
 	<div
 		class="catalog-grid-wrap"
-		style="--item-width: min(22rem, 100%); --gap: 0.75rem; --grid-justify-content: start; --grid-place-content: start;"
+		style={`--item-width: ${itemWidth}; --gap: ${gridGap}; --grid-justify-content: start; --grid-place-content: start;`}
 	>
 		<GridLayout>
 			{#each visibleCatalog as puzzle (puzzle.id)}
