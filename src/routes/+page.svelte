@@ -241,11 +241,6 @@
 		margin: 0;
 	}
 
-	.builder-stack {
-		display: grid;
-		gap: 1rem;
-	}
-
 	.tile-content {
 		display: grid;
 		gap: 0.6rem;

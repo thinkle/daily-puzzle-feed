@@ -6,4 +6,8 @@
 	--secondary-bg: #1a232c;
 	--secondary-fg: #e8edf2;
 	--border-color: #304354;
+	--tile-checkbox-bg: #27415b;
+	--tile-checkbox-fg: #e8edf2;
+	--tile-checkbox-checked-bg: var(--primary-bg);
+	--tile-checkbox-checked-fg: var(--primary-fg);
 }
