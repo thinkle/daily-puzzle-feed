@@ -53,6 +53,7 @@
 		"vitest-browser-svelte": "^2.0.2"
 	},
 	"dependencies": {
-		"contain-css-svelte": "file:../contain-css-svelte"
+		"contain-css-svelte": "file:../contain-css-svelte",
+		"firebase": "^12.9.0"
 	}
 }
