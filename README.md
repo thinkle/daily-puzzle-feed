@@ -77,3 +77,23 @@ firebase deploy --only functions:resolvePuzzleMetadata --project daily-puzzle-fe
 
 After deploy, set `PUBLIC_PUZZLE_METADATA_ENDPOINT` in `.env` to the
 function URL and restart `npm run dev`.
+
+### Probe metadata from multiple URLs
+
+Run the helper script from project root:
+
+```sh
+npm run test:metadata
+```
+
+Custom URLs:
+
+```sh
+npm run test:metadata -- https://framed.wtf https://globle-game.com/game
+```
+
+Full JSON output:
+
+```sh
+npm run test:metadata -- --json https://wafflegame.net/daily
+```
