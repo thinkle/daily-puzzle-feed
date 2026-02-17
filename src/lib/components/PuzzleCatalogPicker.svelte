@@ -90,36 +90,41 @@
 		</FormItem>
 	</Form>
 
-	<GridLayout>
-		{#each visibleCatalog as puzzle (puzzle.id)}
-			<Tile
-				selectable
-				checked={isSelected(puzzle.id)}
-				onchange={(event) => updateSelection(puzzle.id, event)}
-			>
-				<div class="tile-content">
-					<h3>{puzzle.title}</h3>
-					<p>{puzzle.description ?? 'No description yet.'}</p>
-					<div class="tag-row">
-						{#each puzzle.tags as tag (tag)}
-							<Tag>{tag}</Tag>
-						{/each}
+	<div
+		class="catalog-grid-wrap"
+		style="--item-width: min(22rem, 100%); --gap: 0.75rem; --grid-justify-content: start; --grid-place-content: start;"
+	>
+		<GridLayout>
+			{#each visibleCatalog as puzzle (puzzle.id)}
+				<Tile
+					selectable
+					checked={isSelected(puzzle.id)}
+					onchange={(event) => updateSelection(puzzle.id, event)}
+				>
+					<div class="tile-content">
+						<h3>{puzzle.title}</h3>
+						<p>{puzzle.description ?? 'No description yet.'}</p>
+						<div class="tag-row">
+							{#each puzzle.tags as tag (tag)}
+								<Tag>{tag}</Tag>
+							{/each}
+						</div>
+						<div class="tag-row">
+							{#if puzzle.archive.enabled}
+								<Tag info>archive</Tag>
+							{/if}
+							{#if puzzle.unlimited.enabled}
+								<Tag success>unlimited</Tag>
+							{/if}
+							{#if isAdded(puzzle.id)}
+								<Tag primary>in feed</Tag>
+							{/if}
+						</div>
 					</div>
-					<div class="tag-row">
-						{#if puzzle.archive.enabled}
-							<Tag info>archive</Tag>
-						{/if}
-						{#if puzzle.unlimited.enabled}
-							<Tag success>unlimited</Tag>
-						{/if}
-						{#if isAdded(puzzle.id)}
-							<Tag primary>in feed</Tag>
-						{/if}
-					</div>
-				</div>
-			</Tile>
-		{/each}
-	</GridLayout>
+				</Tile>
+			{/each}
+		</GridLayout>
+	</div>
 
 	<div class="actions">
 		<Button primary onclick={addSelectedPuzzles} disabled={selectedAddableCount === 0}>
@@ -151,14 +156,5 @@
 
 	.actions {
 		margin-top: 1rem;
-	}
-
-	:global(.grid-layout) {
-		justify-content: start;
-		place-content: start;
-	}
-
-	:global(.grid-layout .tile) {
-		--tile-width: min(22rem, 100%);
 	}
 </style>
