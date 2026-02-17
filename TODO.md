@@ -60,8 +60,8 @@
 
 ## Phase 5: Metadata Enrichment
 
-- [ ] Attempt favicon + OG metadata extraction path
-- [ ] Fall back to manual title/icon input
+- [x] Attempt favicon + OG metadata extraction path
+- [x] Fall back to manual title/icon input
 - [ ] Cache resolved metadata in `puzzles/{puzzleId}`
 - [ ] Decide if Cloud Function proxy is needed for CORS-restricted sites
 
