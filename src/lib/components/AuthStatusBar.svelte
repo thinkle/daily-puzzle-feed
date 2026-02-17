@@ -26,7 +26,7 @@
 	const accountLabel = $derived.by(() => userName || userEmail || 'your account');
 </script>
 
-<Bar bg="var(--secondary-bg, var(--bg))">
+<Bar bg="var(--secondary-bg, var(--bg))" fg="var(--secondary-fg, var(--fg))">
 	<div class="auth-status">
 		{#if !isConfigured}
 			<p>Firebase is not configured yet. Add `PUBLIC_FIREBASE_*` keys to `.env`.</p>

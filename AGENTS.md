@@ -144,6 +144,7 @@ Define indexes only as needed by actual query shapes.
 - Keep auth/session state in `src/lib/auth/*`.
 - Keep UI pages/components thin; business logic in stores/services.
 - Prefer idempotent writes (`setDoc(..., { merge: true })`) when practical.
+- For UI theming, treat foreground/background as a pair: when setting `bg` (or `--*-bg`), also set the matching `fg` (or `--*-fg`) in the same change to preserve contrast and accessibility.
 
 ## Workflow and Traceability
 
