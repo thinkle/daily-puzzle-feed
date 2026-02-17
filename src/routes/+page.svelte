@@ -11,6 +11,7 @@
 		startAuthSessionListener
 	} from '$lib/auth/session';
 	import AuthStatusBar from '$lib/components/AuthStatusBar.svelte';
+	import AuthSignInPanel from '$lib/components/AuthSignInPanel.svelte';
 	import { isFirebaseConfigured } from '$lib/firebase/client';
 
 	let isAuthActionPending = $state(false);
@@ -20,7 +21,7 @@
 		return startAuthSessionListener();
 	});
 
-	async function handleSignIn() {
+	async function handleGoogleSignIn() {
 		localAuthError = '';
 		isAuthActionPending = true;
 		try {
@@ -71,31 +72,59 @@
 
 <Page>
 	{#snippet header()}
-		<Bar --bar-text-align="center" bg="var(--primary-bg)" fg="var(--primary-fg)">
-			<h1>Daily Puzzle Feed</h1>
+		<Bar bg="var(--primary-bg)" fg="var(--primary-fg)">
+			<div class="header-row">
+				<h1>Daily Puzzle Feed</h1>
+				{#if $authSession.status === 'signed_in'}
+					<AuthStatusBar
+						isBusy={isAuthActionPending}
+						userName={$authSession.user?.displayName ?? ''}
+						userEmail={$authSession.user?.email ?? ''}
+						onSignOut={handleSignOut}
+					/>
+				{/if}
+			</div>
 		</Bar>
-		<AuthStatusBar
-			isConfigured={isFirebaseConfigured}
-			isBusy={isAuthActionPending || $authSession.status === 'loading'}
-			isSignedIn={$authSession.status === 'signed_in'}
-			userName={$authSession.user?.displayName ?? ''}
-			userEmail={$authSession.user?.email ?? ''}
-			errorMessage={localAuthError || $authSession.error || ''}
-			onSignIn={handleSignIn}
-			onEmailSignIn={handleEmailSignIn}
-			onEmailSignUp={handleEmailSignUp}
-			onSignOut={handleSignOut}
-		/>
 	{/snippet}
 
-	<Card>
-		<h2>Daily Feed</h2>
-		<p>Your puzzle list and today status tracker are next in the sprint.</p>
-		<Button primary>
-			{#snippet icon()}
-				+
-			{/snippet}
-			Add Custom Puzzle
-		</Button>
-	</Card>
+	{#if $authSession.status === 'loading'}
+		<Card>
+			<p>Checking session...</p>
+		</Card>
+	{:else if $authSession.status !== 'signed_in'}
+		<AuthSignInPanel
+			isConfigured={isFirebaseConfigured}
+			isBusy={isAuthActionPending}
+			errorMessage={localAuthError || $authSession.error || ''}
+			onGoogleSignIn={handleGoogleSignIn}
+			onEmailSignIn={handleEmailSignIn}
+			onEmailSignUp={handleEmailSignUp}
+		/>
+	{:else}
+		<Card>
+			<h2>Daily Feed</h2>
+			<p>Your puzzle list and today status tracker are next in the sprint.</p>
+			<Button primary>
+				{#snippet icon()}
+					+
+				{/snippet}
+				Add Custom Puzzle
+			</Button>
+		</Card>
+	{/if}
 </Page>
+
+<style>
+	.header-row {
+		align-items: center;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		justify-content: space-between;
+		width: 100%;
+	}
+
+	h1 {
+		margin: 0;
+	}
+</style>

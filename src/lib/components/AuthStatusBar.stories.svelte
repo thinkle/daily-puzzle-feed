@@ -8,27 +8,14 @@
 		component: AuthStatusBar,
 		tags: ['autodocs'],
 		args: {
-			isConfigured: true,
 			isBusy: false,
-			isSignedIn: false,
-			userName: '',
-			userEmail: '',
-			errorMessage: '',
-			onSignIn: fn(),
-			onEmailSignIn: fn(),
-			onEmailSignUp: fn(),
+			userName: 'Jane Doe',
+			userEmail: 'jane@example.com',
 			onSignOut: fn()
 		}
 	});
 </script>
 
-<Story name="Signed Out" />
+<Story name="Default" />
 
-<Story
-	name="Signed In"
-	args={{ isSignedIn: true, userName: 'Jane Doe', userEmail: 'jane@example.com' }}
-/>
-
-<Story name="Missing Config" args={{ isConfigured: false }} />
-
-<Story name="Error State" args={{ errorMessage: 'Popup closed before sign-in completed.' }} />
+<Story name="Busy" args={{ isBusy: true }} />
