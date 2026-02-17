@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-
 	import { Page, Bar, Button, ButtonLink, Card, GridLayout, Tag, Tile } from 'contain-css-svelte';
 	import {
 		authSession,
@@ -12,27 +11,93 @@
 	} from '$lib/auth/session';
 	import AuthStatusBar from '$lib/components/AuthStatusBar.svelte';
 	import AuthSignInPanel from '$lib/components/AuthSignInPanel.svelte';
-	import PuzzleCatalogPicker from '$lib/components/PuzzleCatalogPicker.svelte';
+	import PuzzleApprovalPanel from '$lib/components/PuzzleApprovalPanel.svelte';
 	import PuzzleSubmitForm from '$lib/components/PuzzleSubmitForm.svelte';
+	import { listApprovedPuzzles } from '$lib/data/puzzles';
 	import { resolvePuzzleUrl } from '$lib/data/puzzle-resolver';
-	import { savePuzzleSubmission } from '$lib/data/puzzle-submissions';
+	import {
+		approvePuzzleSubmission,
+		listPendingPuzzleSubmissions,
+		rejectPuzzleSubmission,
+		savePuzzleSubmission
+	} from '$lib/data/puzzle-submissions';
 	import { isFirebaseConfigured } from '$lib/firebase/client';
-	import { getSeedPuzzleCatalog } from '$lib/data/puzzle-catalog';
 	import {
 		arePuzzleUrlsEquivalent,
 		getPuzzleDisplayImageUrl,
+		PUZZLE_TAG_LABELS,
 		type PuzzleDefinition,
-		type PuzzleDraftInput
+		type PuzzleDraftInput,
+		type PuzzleSubmission
 	} from '$lib/model/puzzle';
+
+	const ADMIN_EMAILS = (
+		((import.meta.env.PUBLIC_ADMIN_EMAILS as string | undefined) ?? '')
+			.split(',')
+			.map((email) => email.trim().toLowerCase())
+			.filter(Boolean)
+	);
 
 	let isAuthActionPending = $state(false);
 	let localAuthError = $state('');
-	let catalogPuzzles = $state<PuzzleDefinition[]>(getSeedPuzzleCatalog());
+	let dataError = $state('');
+	let isDataLoading = $state(false);
+	let isReviewBusy = $state(false);
+
+	let catalogPuzzles = $state<PuzzleDefinition[]>([]);
 	let feedPuzzleIds = $state<string[]>([]);
+	let pendingSubmissions = $state<PuzzleSubmission[]>([]);
+
+	const isCurrentUserAdmin = $derived.by(() => {
+		if ($authSession.status !== 'signed_in') {
+			return false;
+		}
+
+		const email = $authSession.user?.email?.toLowerCase().trim();
+		return Boolean(email && ADMIN_EMAILS.includes(email));
+	});
+
+	const feedPuzzles = $derived.by(() =>
+		feedPuzzleIds
+			.map((id) => catalogPuzzles.find((puzzle) => puzzle.id === id) ?? null)
+			.filter((puzzle): puzzle is PuzzleDefinition => puzzle !== null)
+	);
 
 	onMount(() => {
 		return startAuthSessionListener();
 	});
+
+	$effect(() => {
+		if ($authSession.status !== 'signed_in') {
+			catalogPuzzles = [];
+			feedPuzzleIds = [];
+			pendingSubmissions = [];
+			dataError = '';
+			return;
+		}
+
+		void loadSignedInData();
+	});
+
+	async function loadSignedInData() {
+		isDataLoading = true;
+		dataError = '';
+
+		try {
+			const approved = await listApprovedPuzzles();
+			catalogPuzzles = approved;
+
+			if (isCurrentUserAdmin) {
+				pendingSubmissions = await listPendingPuzzleSubmissions();
+			} else {
+				pendingSubmissions = [];
+			}
+		} catch (error) {
+			dataError = error instanceof Error ? error.message : 'Could not load puzzle data.';
+		} finally {
+			isDataLoading = false;
+		}
+	}
 
 	async function handleGoogleSignIn() {
 		localAuthError = '';
@@ -82,10 +147,6 @@
 		}
 	}
 
-	function getPuzzleById(id: string) {
-		return catalogPuzzles.find((puzzle) => puzzle.id === id) ?? null;
-	}
-
 	function ensureCatalogPuzzle(puzzle: PuzzleDefinition) {
 		const existing = catalogPuzzles.find(
 			(candidate) =>
@@ -100,12 +161,6 @@
 		catalogPuzzles = [puzzle, ...catalogPuzzles];
 		return puzzle;
 	}
-
-	const feedPuzzles = $derived.by(() =>
-		feedPuzzleIds
-			.map((id) => getPuzzleById(id))
-			.filter((puzzle): puzzle is PuzzleDefinition => puzzle !== null)
-	);
 
 	function addPuzzlesToFeed(puzzles: PuzzleDefinition[]) {
 		const existing = new Set(feedPuzzleIds);
@@ -155,7 +210,6 @@
 
 		let nextPuzzle = puzzle;
 		let suffix = 2;
-
 		while (catalogPuzzles.some((existing) => existing.id === nextPuzzle.id)) {
 			nextPuzzle = { ...puzzle, id: `${puzzle.id}-${suffix}` };
 			suffix += 1;
@@ -173,6 +227,52 @@
 				resolveSource: context.resolveSource,
 				metadata: context.metadata
 			});
+		}
+	}
+
+	async function handleApproveSubmission(submission: PuzzleSubmission) {
+		if ($authSession.status !== 'signed_in' || !$authSession.user) {
+			return;
+		}
+
+		isReviewBusy = true;
+		try {
+			const approved = await approvePuzzleSubmission({
+				submissionId: submission.id,
+				reviewer: {
+					uid: $authSession.user.uid,
+					email: $authSession.user.email,
+					displayName: $authSession.user.displayName
+				}
+			});
+
+			if (approved) {
+				ensureCatalogPuzzle(approved);
+			}
+			pendingSubmissions = pendingSubmissions.filter((item) => item.id !== submission.id);
+		} finally {
+			isReviewBusy = false;
+		}
+	}
+
+	async function handleRejectSubmission(submission: PuzzleSubmission) {
+		if ($authSession.status !== 'signed_in' || !$authSession.user) {
+			return;
+		}
+
+		isReviewBusy = true;
+		try {
+			await rejectPuzzleSubmission({
+				submissionId: submission.id,
+				reviewer: {
+					uid: $authSession.user.uid,
+					email: $authSession.user.email,
+					displayName: $authSession.user.displayName
+				}
+			});
+			pendingSubmissions = pendingSubmissions.filter((item) => item.id !== submission.id);
+		} finally {
+			isReviewBusy = false;
 		}
 	}
 </script>
@@ -208,17 +308,22 @@
 			onEmailSignUp={handleEmailSignUp}
 		/>
 	{:else}
-		<PuzzleCatalogPicker
-			catalog={catalogPuzzles}
-			addedPuzzleIds={feedPuzzleIds}
-			onAddSelected={addPuzzlesToFeed}
-			itemWidth="20rem"
-			gridGap="0.75rem"
+		{#if dataError}
+			<Card><p>{dataError}</p></Card>
+		{/if}
+		{#if isDataLoading}
+			<Card><p>Loading puzzles...</p></Card>
+		{/if}
+
+		<PuzzleSubmitForm
+			onResolveUrl={handleResolvePuzzleUrl}
+			onAddExistingPuzzle={addExistingPuzzleToFeed}
+			onSubmitPuzzle={addCustomPuzzle}
 		/>
 
 		<h2>My Puzzle Feed</h2>
 		{#if feedPuzzles.length === 0}
-			<p>No puzzles added yet. Pick some from the catalog or submit your own.</p>
+			<p>No puzzles in your feed yet.</p>
 		{:else}
 			<div class="feed-puzzles-wrap">
 				<GridLayout
@@ -238,9 +343,12 @@
 									/>
 								{/if}
 								<h3>{puzzle.title}</h3>
+								{#if puzzle.description}
+									<p>{puzzle.description}</p>
+								{/if}
 								<div class="tag-row">
 									{#each puzzle.tags as tag (tag)}
-										<Tag>{tag}</Tag>
+										<Tag>{PUZZLE_TAG_LABELS[tag]}</Tag>
 									{/each}
 								</div>
 								<div class="feed-actions">
@@ -276,11 +384,14 @@
 			</div>
 		{/if}
 
-		<PuzzleSubmitForm
-			onResolveUrl={handleResolvePuzzleUrl}
-			onAddExistingPuzzle={addExistingPuzzleToFeed}
-			onSubmitPuzzle={addCustomPuzzle}
-		/>
+		{#if isCurrentUserAdmin}
+			<PuzzleApprovalPanel
+				submissions={pendingSubmissions}
+				isBusy={isReviewBusy}
+				onApprove={handleApproveSubmission}
+				onReject={handleRejectSubmission}
+			/>
+		{/if}
 	{/if}
 </Page>
 

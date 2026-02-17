@@ -5,6 +5,32 @@ export type PuzzleLinkMode = {
 	notes?: string;
 };
 
+export const PUZZLE_TAG_OPTIONS = [
+	'word_games',
+	'wordle_like',
+	'geography',
+	'math',
+	'music',
+	'photography',
+	'film',
+	'celebrity',
+	'history'
+] as const;
+
+export type PuzzleTag = (typeof PUZZLE_TAG_OPTIONS)[number];
+
+export const PUZZLE_TAG_LABELS: Record<PuzzleTag, string> = {
+	word_games: 'Word Games',
+	wordle_like: 'Wordle-like',
+	geography: 'Geography',
+	math: 'Math',
+	music: 'Music',
+	photography: 'Photography',
+	film: 'Film',
+	celebrity: 'Celebrity',
+	history: 'History'
+};
+
 export type PuzzleImageMode = 'auto' | 'url' | 'upload';
 
 export type PuzzleImageMeta = {
@@ -22,7 +48,7 @@ export type PuzzleDefinition = {
 	canonicalUrl: string;
 	canonicalUrlNormalized?: string;
 	description?: string;
-	tags: string[];
+	tags: PuzzleTag[];
 	archive: PuzzleLinkMode;
 	unlimited: PuzzleLinkMode;
 	image?: PuzzleImageMeta;
@@ -35,7 +61,7 @@ export type PuzzleDraftInput = {
 	title: string;
 	canonicalUrl: string;
 	description?: string;
-	tags?: string | string[];
+	tags?: string | string[] | PuzzleTag[];
 	siteName?: string;
 	imageMode?: PuzzleImageMode;
 	imagePreviewUrl?: string;
@@ -49,6 +75,36 @@ export type PuzzleDraftInput = {
 	unlimitedUrl?: string;
 	unlimitedUrlTemplate?: string;
 	unlimitedNotes?: string;
+};
+
+export type PuzzleSubmissionStatus = 'pending' | 'approved' | 'rejected';
+
+export type PuzzleSubmission = {
+	id: string;
+	status: PuzzleSubmissionStatus;
+	title: string;
+	canonicalUrl: string;
+	canonicalUrlNormalized?: string;
+	description?: string;
+	tags: PuzzleTag[];
+	siteName?: string;
+	image?: PuzzleImageMeta;
+	archive: PuzzleLinkMode;
+	unlimited: PuzzleLinkMode;
+	resolveSource: 'metadata_endpoint' | 'fallback' | 'manual';
+	submittedBy: {
+		uid: string;
+		email?: string | null;
+		displayName?: string | null;
+	};
+	createdAtMs?: number;
+	updatedAtMs?: number;
+	reviewedAtMs?: number;
+	reviewedBy?: {
+		uid: string;
+		email?: string | null;
+		displayName?: string | null;
+	};
 };
 
 const TRACKING_QUERY_PARAMS = new Set([
@@ -102,7 +158,29 @@ export function arePuzzleUrlsEquivalent(urlA: string, urlB: string) {
 	}
 }
 
-export function normalizeTags(input?: string | string[]): string[] {
+const LEGACY_TAG_ALIASES: Record<string, PuzzleTag> = {
+	word: 'word_games',
+	crossword: 'word_games',
+	wordle: 'wordle_like',
+	'wordle-like': 'wordle_like',
+	wordle_like: 'wordle_like',
+	geo: 'geography',
+	movie: 'film',
+	movies: 'film',
+	trivia: 'history'
+};
+
+function normalizeTag(tag: string): PuzzleTag | null {
+	const raw = tag.trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+	if (!raw) {
+		return null;
+	}
+
+	const aliased = LEGACY_TAG_ALIASES[raw] ?? raw;
+	return PUZZLE_TAG_OPTIONS.includes(aliased as PuzzleTag) ? (aliased as PuzzleTag) : null;
+}
+
+export function normalizeTags(input?: string | string[] | PuzzleTag[]): PuzzleTag[] {
 	if (!input) {
 		return [];
 	}
@@ -110,8 +188,8 @@ export function normalizeTags(input?: string | string[]): string[] {
 	const rawTags = Array.isArray(input) ? input : input.split(',');
 
 	return rawTags
-		.map((tag) => tag.trim().toLowerCase())
-		.filter(Boolean)
+		.map((tag) => normalizeTag(String(tag)))
+		.filter((tag): tag is PuzzleTag => tag !== null)
 		.filter((tag, index, tags) => tags.indexOf(tag) === index);
 }
 

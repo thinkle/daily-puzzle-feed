@@ -15,11 +15,11 @@
 					canonicalUrl: 'https://www.nytimes.com/games/wordle/index.html',
 					canonicalUrlNormalized: 'https://www.nytimes.com/games/wordle/index.html',
 					description: 'Guess the five-letter word in six tries.',
-					tags: ['word', 'daily'],
+					tags: ['word_games', 'wordle_like'],
 					archive: { enabled: false },
 					unlimited: { enabled: false },
 					active: true,
-					source: 'seed'
+					source: 'canonical'
 				}
 			};
 		}
@@ -38,7 +38,7 @@
 				title: 'Sample Puzzle',
 				canonicalUrl: url,
 				description: 'Storybook metadata prefill sample.',
-				tags: ['word', 'daily'],
+				tags: ['word_games', 'wordle_like'],
 				siteName: 'Sample Games',
 				imageMode: 'auto',
 				imagePreviewUrl: 'https://picsum.photos/640/320',

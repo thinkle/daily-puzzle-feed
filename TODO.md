@@ -14,16 +14,15 @@
 ## Active Sprint: Feed Builder (Now)
 
 - [x] Define typed puzzle model with archive/unlimited metadata
-- [x] Seed initial tagged puzzle catalog data
-- [x] Build selectable tile-based puzzle catalog browser with add action
-- [x] Build custom puzzle submission form for manual entry
-- [x] Wire browse/add/submit flows into signed-in dashboard page
-- [x] Add Storybook coverage for new feed-builder components
+- [x] Replace seed catalog usage with Firestore-backed approved puzzle loading
+- [x] Build URL-first puzzle submission flow (lookup -> confirm -> submit)
+- [x] Add admin review UI for approve/reject of pending submissions
+- [x] Add Storybook coverage for feed-builder and admin review components
 
 ## Phase 0: Project Guardrails
 
 - [x] Expand `AGENTS.md` with architecture, schema, and conventions
-- [ ] Add `docs/` notes for Firestore rules and index decisions as they evolve
+- [x] Add `docs/` notes for Firestore rules and index decisions as they evolve
 
 ## Phase 1: Firebase Foundation
 
@@ -73,7 +72,7 @@
 
 ## Phase 7: Security and Quality
 
-- [ ] Add Firestore security rules for user-owned writes and status validation
+- [x] Add Firestore security rules for user-owned writes and status validation
 - [ ] Add Firestore index definitions for feed queries
 - [ ] Add unit tests for date + status transition helpers
 - [ ] Add a smoke test for auth + create puzzle + mark status flow
