@@ -12,15 +12,16 @@
 	import AuthStatusBar from '$lib/components/AuthStatusBar.svelte';
 	import AuthSignInPanel from '$lib/components/AuthSignInPanel.svelte';
 	import PuzzleApprovalPanel from '$lib/components/PuzzleApprovalPanel.svelte';
+	import PuzzleCatalogPicker from '$lib/components/PuzzleCatalogPicker.svelte';
 	import PuzzleSubmitForm from '$lib/components/PuzzleSubmitForm.svelte';
 	import { listApprovedPuzzles } from '$lib/data/puzzles';
 	import { resolvePuzzleUrl } from '$lib/data/puzzle-resolver';
-	import { env as publicEnv } from '$env/dynamic/public';
 	import {
 		approvePuzzleSubmission,
 		listPendingPuzzleSubmissions,
 		rejectPuzzleSubmission,
-		savePuzzleSubmission
+		savePuzzleSubmission,
+		updatePendingPuzzleSubmission
 	} from '$lib/data/puzzle-submissions';
 	import { isFirebaseConfigured } from '$lib/firebase/client';
 	import {
@@ -32,10 +33,7 @@
 		type PuzzleSubmission
 	} from '$lib/model/puzzle';
 
-	const ADMIN_EMAILS = (publicEnv.PUBLIC_ADMIN_EMAILS ?? '')
-		.split(',')
-		.map((email) => email.trim().toLowerCase())
-		.filter(Boolean);
+	const ADMIN_EMAILS = ['tmhinkle@gmail.com', 'thinkle@innovationcharter.org'];
 
 	let isAuthActionPending = $state(false);
 	let localAuthError = $state('');
@@ -274,6 +272,48 @@
 			isReviewBusy = false;
 		}
 	}
+
+	async function handleSaveSubmissionEdit(
+		submission: PuzzleSubmission,
+		update: {
+			title: string;
+			canonicalUrl: string;
+			description?: string;
+			tags: PuzzleSubmission['tags'];
+			siteName?: string;
+		}
+	) {
+		if ($authSession.status !== 'signed_in' || !$authSession.user) {
+			return;
+		}
+
+		isReviewBusy = true;
+		try {
+			const updated = await updatePendingPuzzleSubmission({
+				submissionId: submission.id,
+				title: update.title,
+				canonicalUrl: update.canonicalUrl,
+				description: update.description,
+				tags: update.tags,
+				siteName: update.siteName,
+				editor: {
+					uid: $authSession.user.uid,
+					email: $authSession.user.email,
+					displayName: $authSession.user.displayName
+				}
+			});
+
+			if (!updated) {
+				return;
+			}
+
+			pendingSubmissions = pendingSubmissions.map((item) =>
+				item.id === updated.id ? updated : item
+			);
+		} finally {
+			isReviewBusy = false;
+		}
+	}
 </script>
 
 <Page>
@@ -318,6 +358,14 @@
 			onResolveUrl={handleResolvePuzzleUrl}
 			onAddExistingPuzzle={addExistingPuzzleToFeed}
 			onSubmitPuzzle={addCustomPuzzle}
+		/>
+
+		<PuzzleCatalogPicker
+			catalog={catalogPuzzles}
+			addedPuzzleIds={feedPuzzleIds}
+			onAddSelected={addPuzzlesToFeed}
+			itemWidth="20rem"
+			gridGap="0.75rem"
 		/>
 
 		<h2>My Puzzle Feed</h2>
@@ -387,6 +435,7 @@
 			<PuzzleApprovalPanel
 				submissions={pendingSubmissions}
 				isBusy={isReviewBusy}
+				onSaveEdit={handleSaveSubmissionEdit}
 				onApprove={handleApproveSubmission}
 				onReject={handleRejectSubmission}
 			/>

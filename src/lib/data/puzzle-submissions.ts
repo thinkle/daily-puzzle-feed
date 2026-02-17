@@ -4,6 +4,7 @@ import {
 	normalizeTags,
 	type PuzzleDraftInput,
 	type PuzzleImageMode,
+	type PuzzleTag,
 	type PuzzleSubmission,
 	type PuzzleSubmissionStatus
 } from '$lib/model/puzzle';
@@ -35,6 +36,20 @@ type SavePuzzleSubmissionArgs = {
 type ReviewPuzzleSubmissionArgs = {
 	submissionId: string;
 	reviewer: {
+		uid: string;
+		email?: string | null;
+		displayName?: string | null;
+	};
+};
+
+type UpdatePendingPuzzleSubmissionArgs = {
+	submissionId: string;
+	title: string;
+	canonicalUrl: string;
+	description?: string;
+	tags: PuzzleTag[];
+	siteName?: string;
+	editor: {
 		uid: string;
 		email?: string | null;
 		displayName?: string | null;
@@ -303,4 +318,62 @@ export async function rejectPuzzleSubmission({ submissionId, reviewer }: ReviewP
 	} catch {
 		return false;
 	}
+}
+
+export async function updatePendingPuzzleSubmission({
+	submissionId,
+	title,
+	canonicalUrl,
+	description,
+	tags,
+	siteName,
+	editor
+}: UpdatePendingPuzzleSubmissionArgs): Promise<PuzzleSubmission | null> {
+	if (!isFirebaseConfigured) {
+		return null;
+	}
+
+	const normalizedUrl = normalizePuzzleUrl(canonicalUrl);
+	const normalizedTags = normalizeTags(tags);
+	const cleanedTitle = title.trim();
+	if (!cleanedTitle) {
+		throw new Error('Title is required.');
+	}
+
+	const db = getFirebaseDb();
+	const submissionRef = doc(db, 'puzzle_submissions', submissionId);
+
+	await runTransaction(db, async (transaction) => {
+		const submissionSnap = await transaction.get(submissionRef);
+		if (!submissionSnap.exists()) {
+			throw new Error('Submission not found.');
+		}
+
+		const status = asString(submissionSnap.data().status) ?? 'pending';
+		if (status !== 'pending') {
+			throw new Error('Only pending submissions can be edited.');
+		}
+
+		transaction.update(submissionRef, {
+			title: cleanedTitle,
+			canonicalUrl: normalizedUrl,
+			canonicalUrlNormalized: normalizedUrl,
+			description: description?.trim() || null,
+			tags: normalizedTags,
+			siteName: siteName?.trim() || null,
+			lastEditedBy: {
+				uid: editor.uid,
+				email: editor.email ?? null,
+				displayName: editor.displayName ?? null
+			},
+			updatedAt: serverTimestamp()
+		});
+	});
+
+	const updatedSnap = await getDoc(submissionRef);
+	if (!updatedSnap.exists()) {
+		return null;
+	}
+
+	return mapSubmission(updatedSnap.id, updatedSnap.data());
 }

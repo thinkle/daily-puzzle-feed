@@ -58,6 +58,7 @@
 		args: {
 			submissions: sampleSubmissions,
 			isBusy: false,
+			onSaveEdit: fn(),
 			onApprove: fn(),
 			onReject: fn()
 		}
