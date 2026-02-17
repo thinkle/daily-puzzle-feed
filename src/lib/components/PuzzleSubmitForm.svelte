@@ -226,10 +226,12 @@
 		</FormItem>
 
 		{#if imagePreview}
-			<div class="preview-wrap">
-				<p>Image Preview</p>
-				<img src={imagePreview} alt="Puzzle preview" />
-			</div>
+			<FormItem fullWidth>
+				{#snippet label()}Image Preview{/snippet}
+				<div class="preview-wrap">
+					<img src={imagePreview} alt="Puzzle preview" />
+				</div>
+			</FormItem>
 		{/if}
 
 		<FormItem fullWidth>
@@ -315,10 +317,6 @@
 	.preview-wrap {
 		display: grid;
 		gap: 0.4rem;
-	}
-
-	.preview-wrap p {
-		margin: 0;
 	}
 
 	.preview-wrap img {
