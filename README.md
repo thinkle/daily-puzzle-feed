@@ -40,3 +40,40 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+
+## Firebase Metadata Endpoint
+
+This project includes a Firebase Function called
+`resolvePuzzleMetadata` in `functions/src/index.ts`. It fetches a URL,
+extracts OG/Twitter/title/favicon metadata, and returns JSON used by
+the puzzle submit prefill flow.
+
+### Build and lint functions
+
+```sh
+cd functions
+npm run lint
+npm run build
+```
+
+### Run locally (emulator)
+
+```sh
+cd functions
+npm run serve
+```
+
+Test with:
+
+```sh
+curl -s "http://127.0.0.1:5001/daily-puzzle-feed/us-central1/resolvePuzzleMetadata?url=https://www.nytimes.com/games/wordle/index.html"
+```
+
+### Deploy function
+
+```sh
+firebase deploy --only functions:resolvePuzzleMetadata --project daily-puzzle-feed
+```
+
+After deploy, set `PUBLIC_PUZZLE_METADATA_ENDPOINT` in `.env` to the
+function URL and restart `npm run dev`.
