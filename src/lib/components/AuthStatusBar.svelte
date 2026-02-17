@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Bar, Button, Form, FormItem, Input } from 'contain-css-svelte';
+	import { Button, Card, Form, FormItem, Input } from 'contain-css-svelte';
 
 	type Props = {
 		isConfigured?: boolean;
@@ -52,7 +52,7 @@
 	}
 </script>
 
-<Bar bg="var(--secondary-bg, var(--bg))" fg="var(--secondary-fg, var(--fg))">
+<Card bg="var(--secondary-bg, var(--bg))" fg="var(--secondary-fg, var(--fg))">
 	<div class="auth-status">
 		{#if !isConfigured}
 			<p>Firebase is not configured yet. Add `PUBLIC_FIREBASE_*` keys to `.env`.</p>
@@ -97,7 +97,7 @@
 			<p class="error">{errorMessage}</p>
 		{/if}
 	</div>
-</Bar>
+</Card>
 
 <style>
 	.auth-status {
