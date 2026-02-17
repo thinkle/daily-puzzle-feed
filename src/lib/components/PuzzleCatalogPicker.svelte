@@ -9,7 +9,7 @@
 		Tag,
 		Tile
 	} from 'contain-css-svelte';
-	import type { PuzzleDefinition } from '$lib/model/puzzle';
+	import { getPuzzleDisplayImageUrl, type PuzzleDefinition } from '$lib/model/puzzle';
 
 	type Props = {
 		catalog: PuzzleDefinition[];
@@ -32,8 +32,12 @@
 
 	const normalizedFilter = $derived.by(() => filterText.trim().toLowerCase());
 
-	const visibleCatalog = $derived(
-		catalog.filter((puzzle) => {
+	const visibleCatalog = $derived.by(() => {
+		if (!normalizedFilter) {
+			return catalog;
+		}
+
+		return catalog.filter((puzzle) => {
 			const searchable = [
 				puzzle.title,
 				puzzle.description ?? '',
@@ -44,8 +48,8 @@
 				.toLowerCase();
 
 			return searchable.includes(normalizedFilter);
-		})
-	);
+		});
+	});
 
 	const selectedAddableCount = $derived.by(() => {
 		const added = new Set(addedPuzzleIds);
@@ -103,14 +107,21 @@
 		</FormItem>
 	</Form>
 
-	<GridLayout --item-width="var(--tile-width)" --tag-font-size="0.7em">
+	<GridLayout --item-width={itemWidth} --gap={gridGap} --tag-font-size="0.7em">
 		{#each visibleCatalog as puzzle (puzzle.id)}
 			<Tile
 				selectable
 				checked={isSelected(puzzle.id)}
-				onclick={(event) => updateSelection(puzzle.id, event)}
+				onchange={(event) => updateSelection(puzzle.id, event)}
 			>
 				<div class="tile-content">
+					{#if getPuzzleDisplayImageUrl(puzzle)}
+						<img
+							class="puzzle-image"
+							src={getPuzzleDisplayImageUrl(puzzle)}
+							alt={`${puzzle.title} preview`}
+						/>
+					{/if}
 					<h3>{puzzle.title}</h3>
 					<p>{puzzle.description ?? 'No description yet.'}</p>
 					<div class="tag-row">
@@ -160,6 +171,14 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.25rem;
+	}
+
+	.puzzle-image {
+		border: 1px solid var(--border-color);
+		border-radius: var(--border-radius, 8px);
+		height: 6.5rem;
+		object-fit: cover;
+		width: 100%;
 	}
 
 	.actions {

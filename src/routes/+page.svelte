@@ -1,17 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	import {
-		Page,
-		Bar,
-		Button,
-		ButtonLink,
-		Card,
-		Container,
-		GridLayout,
-		Tag,
-		Tile
-	} from 'contain-css-svelte';
+	import { Page, Bar, Button, ButtonLink, Card, GridLayout, Tag, Tile } from 'contain-css-svelte';
 	import {
 		authSession,
 		createEmailPasswordAccount,
@@ -24,9 +14,16 @@
 	import AuthSignInPanel from '$lib/components/AuthSignInPanel.svelte';
 	import PuzzleCatalogPicker from '$lib/components/PuzzleCatalogPicker.svelte';
 	import PuzzleSubmitForm from '$lib/components/PuzzleSubmitForm.svelte';
+	import { resolvePuzzleUrl } from '$lib/data/puzzle-resolver';
+	import { savePuzzleSubmission } from '$lib/data/puzzle-submissions';
 	import { isFirebaseConfigured } from '$lib/firebase/client';
 	import { getSeedPuzzleCatalog } from '$lib/data/puzzle-catalog';
-	import type { PuzzleDefinition } from '$lib/model/puzzle';
+	import {
+		arePuzzleUrlsEquivalent,
+		getPuzzleDisplayImageUrl,
+		type PuzzleDefinition,
+		type PuzzleDraftInput
+	} from '$lib/model/puzzle';
 
 	let isAuthActionPending = $state(false);
 	let localAuthError = $state('');
@@ -89,6 +86,21 @@
 		return catalogPuzzles.find((puzzle) => puzzle.id === id) ?? null;
 	}
 
+	function ensureCatalogPuzzle(puzzle: PuzzleDefinition) {
+		const existing = catalogPuzzles.find(
+			(candidate) =>
+				candidate.id === puzzle.id ||
+				arePuzzleUrlsEquivalent(candidate.canonicalUrl, puzzle.canonicalUrl)
+		);
+
+		if (existing) {
+			return existing;
+		}
+
+		catalogPuzzles = [puzzle, ...catalogPuzzles];
+		return puzzle;
+	}
+
 	const feedPuzzles = $derived.by(() =>
 		feedPuzzleIds
 			.map((id) => getPuzzleById(id))
@@ -113,7 +125,34 @@
 		feedPuzzleIds = feedPuzzleIds.filter((puzzleId) => puzzleId !== id);
 	}
 
-	function addCustomPuzzle(puzzle: PuzzleDefinition) {
+	async function handleResolvePuzzleUrl(url: string) {
+		return resolvePuzzleUrl({
+			url,
+			catalog: catalogPuzzles
+		});
+	}
+
+	async function addExistingPuzzleToFeed(puzzle: PuzzleDefinition) {
+		const nextPuzzle = ensureCatalogPuzzle(puzzle);
+		addPuzzlesToFeed([nextPuzzle]);
+	}
+
+	async function addCustomPuzzle(
+		puzzle: PuzzleDefinition,
+		context: {
+			draft: PuzzleDraftInput;
+			resolveSource: 'metadata_endpoint' | 'fallback' | 'manual';
+			metadata: Record<string, unknown> | null;
+		}
+	) {
+		const byUrl = catalogPuzzles.find((candidate) =>
+			arePuzzleUrlsEquivalent(candidate.canonicalUrl, puzzle.canonicalUrl)
+		);
+		if (byUrl) {
+			addPuzzlesToFeed([byUrl]);
+			return;
+		}
+
 		let nextPuzzle = puzzle;
 		let suffix = 2;
 
@@ -124,6 +163,17 @@
 
 		catalogPuzzles = [nextPuzzle, ...catalogPuzzles];
 		addPuzzlesToFeed([nextPuzzle]);
+
+		if ($authSession.status === 'signed_in' && $authSession.user) {
+			await savePuzzleSubmission({
+				uid: $authSession.user.uid,
+				email: $authSession.user.email,
+				displayName: $authSession.user.displayName,
+				draft: context.draft,
+				resolveSource: context.resolveSource,
+				metadata: context.metadata
+			});
+		}
 	}
 </script>
 
@@ -170,14 +220,23 @@
 		{#if feedPuzzles.length === 0}
 			<p>No puzzles added yet. Pick some from the catalog or submit your own.</p>
 		{:else}
-			<div
-				class="feed-puzzles-wrap"
-				style="--item-width: 20rem; --gap: 0.75rem; --grid-justify-content: start; --grid-place-content: start;"
-			>
-				<GridLayout>
+			<div class="feed-puzzles-wrap">
+				<GridLayout
+					--item-width="20rem"
+					--gap="0.75rem"
+					--grid-justify-content="start"
+					--grid-place-content="start"
+				>
 					{#each feedPuzzles as puzzle (puzzle.id)}
 						<Tile>
 							<div class="tile-content">
+								{#if getPuzzleDisplayImageUrl(puzzle)}
+									<img
+										class="puzzle-image"
+										src={getPuzzleDisplayImageUrl(puzzle)}
+										alt={`${puzzle.title} preview`}
+									/>
+								{/if}
 								<h3>{puzzle.title}</h3>
 								<div class="tag-row">
 									{#each puzzle.tags as tag (tag)}
@@ -217,7 +276,11 @@
 			</div>
 		{/if}
 
-		<PuzzleSubmitForm onSubmitPuzzle={addCustomPuzzle} />
+		<PuzzleSubmitForm
+			onResolveUrl={handleResolvePuzzleUrl}
+			onAddExistingPuzzle={addExistingPuzzleToFeed}
+			onSubmitPuzzle={addCustomPuzzle}
+		/>
 	{/if}
 </Page>
 
@@ -246,6 +309,14 @@
 		gap: 0.6rem;
 		padding-top: 1rem;
 		text-align: left;
+		width: 100%;
+	}
+
+	.puzzle-image {
+		border: 1px solid var(--border-color);
+		border-radius: var(--border-radius, 8px);
+		height: 7.5rem;
+		object-fit: cover;
 		width: 100%;
 	}
 

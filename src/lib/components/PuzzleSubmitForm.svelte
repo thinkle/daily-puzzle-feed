@@ -5,17 +5,33 @@
 		type PuzzleDefinition,
 		type PuzzleDraftInput
 	} from '$lib/model/puzzle';
+	import type { PuzzleUrlResolution } from '$lib/data/puzzle-resolver';
 
 	type Props = {
-		onSubmitPuzzle?: (puzzle: PuzzleDefinition) => void;
+		onSubmitPuzzle?: (
+			puzzle: PuzzleDefinition,
+			context: {
+				draft: PuzzleDraftInput;
+				resolveSource: 'metadata_endpoint' | 'fallback' | 'manual';
+				metadata: Record<string, unknown> | null;
+			}
+		) => void | Promise<void>;
+		onResolveUrl?: (url: string) => Promise<PuzzleUrlResolution>;
+		onAddExistingPuzzle?: (puzzle: PuzzleDefinition) => void | Promise<void>;
 	};
 
-	let { onSubmitPuzzle = () => {} }: Props = $props();
+	let { onSubmitPuzzle = () => {}, onResolveUrl, onAddExistingPuzzle = () => {} }: Props = $props();
 
 	let title = $state('');
 	let canonicalUrl = $state('');
 	let description = $state('');
 	let tags = $state('');
+	let siteName = $state('');
+	let imageCustomUrl = $state('');
+	let imagePreviewUrl = $state('');
+	let imageFaviconUrl = $state('');
+	let resolveSource = $state<'metadata_endpoint' | 'fallback' | 'manual'>('manual');
+	let resolveMetadata = $state<Record<string, unknown> | null>(null);
 
 	let archiveEnabled = $state(false);
 	let archiveUrl = $state('');
@@ -27,24 +43,97 @@
 
 	let errorMessage = $state('');
 	let submitted = $state(false);
+	let resolveMessage = $state('');
+	let isResolving = $state(false);
+	let isSubmitting = $state(false);
+
+	const imagePreview = $derived(
+		imageCustomUrl.trim() || imagePreviewUrl.trim() || imageFaviconUrl.trim()
+	);
 
 	function resetForm() {
 		title = '';
 		canonicalUrl = '';
 		description = '';
 		tags = '';
+		siteName = '';
+		imageCustomUrl = '';
+		imagePreviewUrl = '';
+		imageFaviconUrl = '';
+		resolveSource = 'manual';
+		resolveMetadata = null;
 		archiveEnabled = false;
 		archiveUrl = '';
 		archiveUrlTemplate = '';
 		unlimitedEnabled = false;
 		unlimitedUrl = '';
 		unlimitedUrlTemplate = '';
+		resolveMessage = '';
 	}
 
-	function submitPuzzle(event: SubmitEvent) {
+	function applyPrefill(prefill: PuzzleDraftInput) {
+		title = prefill.title ?? '';
+		canonicalUrl = prefill.canonicalUrl ?? canonicalUrl;
+		description = prefill.description ?? '';
+		tags = Array.isArray(prefill.tags) ? prefill.tags.join(', ') : (prefill.tags ?? '');
+		siteName = prefill.siteName ?? '';
+		imagePreviewUrl = prefill.imagePreviewUrl ?? '';
+		imageCustomUrl = prefill.imageCustomUrl ?? prefill.imagePreviewUrl ?? '';
+		imageFaviconUrl = prefill.imageFaviconUrl ?? '';
+		archiveEnabled = Boolean(prefill.archiveEnabled);
+		archiveUrl = prefill.archiveUrl ?? '';
+		archiveUrlTemplate = prefill.archiveUrlTemplate ?? '';
+		unlimitedEnabled = Boolean(prefill.unlimitedEnabled);
+		unlimitedUrl = prefill.unlimitedUrl ?? '';
+		unlimitedUrlTemplate = prefill.unlimitedUrlTemplate ?? '';
+	}
+
+	async function resolveUrl() {
+		errorMessage = '';
+		resolveMessage = '';
+		submitted = false;
+
+		if (!canonicalUrl.trim()) {
+			errorMessage = 'Puzzle URL is required before lookup.';
+			return;
+		}
+
+		if (!onResolveUrl) {
+			resolveMessage = 'URL resolver is not configured for this environment.';
+			return;
+		}
+
+		isResolving = true;
+		try {
+			const result = await onResolveUrl(canonicalUrl.trim());
+
+			if (result.kind === 'existing') {
+				await onAddExistingPuzzle(result.puzzle);
+				resolveSource = 'manual';
+				resolveMetadata = null;
+				resolveMessage = 'This URL already exists. Added it to your feed.';
+				return;
+			}
+
+			resolveSource = result.source;
+			resolveMetadata = (result.metadata ?? null) as Record<string, unknown> | null;
+			applyPrefill(result.prefill);
+			resolveMessage =
+				result.source === 'metadata_endpoint'
+					? 'Metadata loaded. Review fields, then save.'
+					: 'No remote metadata available. We prefilled what we could.';
+		} catch (error) {
+			errorMessage = error instanceof Error ? error.message : 'URL lookup failed.';
+		} finally {
+			isResolving = false;
+		}
+	}
+
+	async function submitPuzzle(event: SubmitEvent) {
 		event.preventDefault();
 		errorMessage = '';
 		submitted = false;
+		resolveMessage = '';
 
 		if (!title.trim()) {
 			errorMessage = 'Title is required.';
@@ -68,6 +157,11 @@
 			canonicalUrl,
 			description,
 			tags,
+			siteName,
+			imageMode: imageCustomUrl.trim() ? 'url' : imagePreviewUrl.trim() ? 'auto' : undefined,
+			imagePreviewUrl,
+			imageCustomUrl,
+			imageFaviconUrl,
 			archiveEnabled,
 			archiveUrl,
 			archiveUrlTemplate,
@@ -76,10 +170,21 @@
 			unlimitedUrlTemplate
 		};
 
-		const puzzle = createUserPuzzleDefinition(draft);
-		onSubmitPuzzle(puzzle);
-		resetForm();
-		submitted = true;
+		isSubmitting = true;
+		try {
+			const puzzle = createUserPuzzleDefinition(draft);
+			await onSubmitPuzzle(puzzle, {
+				draft,
+				resolveSource,
+				metadata: resolveMetadata
+			});
+			resetForm();
+			submitted = true;
+		} catch (error) {
+			errorMessage = error instanceof Error ? error.message : 'Could not save puzzle.';
+		} finally {
+			isSubmitting = false;
+		}
 	}
 </script>
 
@@ -99,9 +204,33 @@
 		</FormItem>
 
 		<FormItem fullWidth>
+			{#snippet label()}Lookup{/snippet}
+			<Button type="button" onclick={resolveUrl} disabled={isResolving || !canonicalUrl.trim()}>
+				{isResolving ? 'Looking up...' : 'Lookup URL Metadata'}
+			</Button>
+		</FormItem>
+
+		<FormItem fullWidth>
 			{#snippet label()}Description{/snippet}
 			<Input bind:value={description} placeholder="Short description (optional)" />
 		</FormItem>
+
+		<FormItem fullWidth>
+			{#snippet label()}Site Name{/snippet}
+			<Input bind:value={siteName} placeholder="Optional source/site name" />
+		</FormItem>
+
+		<FormItem fullWidth>
+			{#snippet label()}Image URL{/snippet}
+			<Input bind:value={imageCustomUrl} type="url" placeholder="https://example.com/image.png" />
+		</FormItem>
+
+		{#if imagePreview}
+			<div class="preview-wrap">
+				<p>Image Preview</p>
+				<img src={imagePreview} alt="Puzzle preview" />
+			</div>
+		{/if}
 
 		<FormItem fullWidth>
 			{#snippet label()}Tags{/snippet}
@@ -148,15 +277,20 @@
 
 		<FormItem fullWidth>
 			{#snippet label()}&nbsp;{/snippet}
-			<Button primary type="submit">Save Puzzle</Button>
+			<Button primary type="submit" disabled={isSubmitting}>
+				{isSubmitting ? 'Saving...' : 'Save Puzzle'}
+			</Button>
 		</FormItem>
 	</Form>
 
 	{#if errorMessage}
 		<p class="error">{errorMessage}</p>
 	{/if}
+	{#if resolveMessage}
+		<p class="hint">{resolveMessage}</p>
+	{/if}
 	{#if submitted}
-		<p class="ok">Puzzle added and selected for your feed.</p>
+		<p class="ok">Puzzle added to your feed and queued for review.</p>
 	{/if}
 </Card>
 
@@ -172,5 +306,26 @@
 
 	.ok {
 		color: var(--success-fg, #147d2f);
+	}
+
+	.hint {
+		color: var(--info-fg, #0057ad);
+	}
+
+	.preview-wrap {
+		display: grid;
+		gap: 0.4rem;
+	}
+
+	.preview-wrap p {
+		margin: 0;
+	}
+
+	.preview-wrap img {
+		border: 1px solid var(--border-color);
+		border-radius: var(--border-radius, 8px);
+		max-height: 10rem;
+		max-width: 100%;
+		object-fit: cover;
 	}
 </style>
