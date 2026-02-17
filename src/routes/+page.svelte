@@ -6,6 +6,8 @@
 	import { Page, Bar, Card, Button } from 'contain-css-svelte';
 	import {
 		authSession,
+		createEmailPasswordAccount,
+		signInWithEmailPassword,
 		signInWithGooglePopup,
 		signOutCurrentUser,
 		startAuthSessionListener
@@ -27,6 +29,30 @@
 			await signInWithGooglePopup();
 		} catch (error) {
 			localAuthError = error instanceof Error ? error.message : 'Google sign-in failed.';
+		} finally {
+			isAuthActionPending = false;
+		}
+	}
+
+	async function handleEmailSignIn(email: string, password: string) {
+		localAuthError = '';
+		isAuthActionPending = true;
+		try {
+			await signInWithEmailPassword(email, password);
+		} catch (error) {
+			localAuthError = error instanceof Error ? error.message : 'Email sign-in failed.';
+		} finally {
+			isAuthActionPending = false;
+		}
+	}
+
+	async function handleEmailSignUp(email: string, password: string) {
+		localAuthError = '';
+		isAuthActionPending = true;
+		try {
+			await createEmailPasswordAccount(email, password);
+		} catch (error) {
+			localAuthError = error instanceof Error ? error.message : 'Account creation failed.';
 		} finally {
 			isAuthActionPending = false;
 		}
@@ -58,6 +84,8 @@
 			userEmail={$authSession.user?.email ?? ''}
 			errorMessage={localAuthError || $authSession.error || ''}
 			onSignIn={handleSignIn}
+			onEmailSignIn={handleEmailSignIn}
+			onEmailSignUp={handleEmailSignUp}
 			onSignOut={handleSignOut}
 		/>
 	{/snippet}

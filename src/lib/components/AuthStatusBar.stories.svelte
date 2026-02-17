@@ -15,6 +15,8 @@
 			userEmail: '',
 			errorMessage: '',
 			onSignIn: fn(),
+			onEmailSignIn: fn(),
+			onEmailSignUp: fn(),
 			onSignOut: fn()
 		}
 	});
