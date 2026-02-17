@@ -1,5 +1,16 @@
 # Daily Puzzle Feed TODO
 
+## Active Sprint: Firebase Foundation (Now)
+
+- [x] Create development branch for sprint work (`feat/firebase-foundation`)
+- [ ] Add Firebase SDK dependency and verify project still type-checks
+- [ ] Add Firebase client bootstrap (`src/lib/firebase/client.ts`)
+- [ ] Add env template (`.env.example`) with required Firebase public keys
+- [ ] Add auth session store/helpers (`src/lib/auth/session.ts`)
+- [ ] Add sign-in/sign-out controls in `src/routes/+page.svelte`
+- [ ] Add or update Storybook story for auth/header UI states
+- [ ] Run checks/tests and record results in handoff summary
+
 ## Phase 0: Project Guardrails
 
 - [x] Expand `AGENTS.md` with architecture, schema, and conventions
