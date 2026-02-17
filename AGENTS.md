@@ -144,6 +144,9 @@ Define indexes only as needed by actual query shapes.
 - Keep auth/session state in `src/lib/auth/*`.
 - Keep UI pages/components thin; business logic in stores/services.
 - Prefer `contain-css-svelte` primitives (`Form`, `FormItem`, `Input`, `Select`, `Button`, etc.) over raw HTML controls unless there is a clear documented reason not to.
+- Use `Card` only for actual card-like content blocks. Do not wrap whole-page sections, grids, or major layout regions in `Card` by default.
+- Do not invent ad-hoc layout wrappers (`div` nesting) when an existing Contain primitive already covers the layout need.
+- Prefer explicit component-level variable props (example: `<GridLayout --item-width="20rem">`) over hard-to-trace global selectors.
 - Prefer idempotent writes (`setDoc(..., { merge: true })`) when practical.
 - For UI theming, treat foreground/background as a pair: when setting `bg` (or `--*-bg`), also set the matching `fg` (or `--*-fg`) in the same change to preserve contrast and accessibility.
 
