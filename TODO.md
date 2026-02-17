@@ -11,6 +11,15 @@
 - [x] Add or update Storybook story for auth/header UI states
 - [x] Run checks/tests and record results in handoff summary
 
+## Active Sprint: Feed Builder (Now)
+
+- [x] Define typed puzzle model with archive/unlimited metadata
+- [x] Seed initial tagged puzzle catalog data
+- [x] Build selectable tile-based puzzle catalog browser with add action
+- [x] Build custom puzzle submission form for manual entry
+- [x] Wire browse/add/submit flows into signed-in dashboard page
+- [x] Add Storybook coverage for new feed-builder components
+
 ## Phase 0: Project Guardrails
 
 - [x] Expand `AGENTS.md` with architecture, schema, and conventions
@@ -18,15 +27,15 @@
 
 ## Phase 1: Firebase Foundation
 
-- [ ] Install Firebase SDK (`firebase`)
-- [ ] Create `src/lib/firebase/client.ts` for app/auth/firestore initialization
-- [ ] Add environment variables for Firebase config in `.env.example`
-- [ ] Implement auth helpers in `src/lib/auth/session.ts`
-- [ ] Add sign-in/sign-out UI controls on `src/routes/+page.svelte`
+- [x] Install Firebase SDK (`firebase`)
+- [x] Create `src/lib/firebase/client.ts` for app/auth/firestore initialization
+- [x] Add environment variables for Firebase config in `.env.example`
+- [x] Implement auth helpers in `src/lib/auth/session.ts`
+- [x] Add sign-in/sign-out UI controls on `src/routes/+page.svelte`
 
 ## Phase 2: Typed Data Model
 
-- [ ] Add shared types in `src/lib/model/puzzle.ts`
+- [x] Add shared types in `src/lib/model/puzzle.ts`
 - [ ] Add shared types in `src/lib/model/play.ts`
 - [ ] Add shared types in `src/lib/model/user.ts`
 - [ ] Add date helpers (`dayKey` conversions) in `src/lib/model/date.ts`
@@ -43,11 +52,11 @@
 ## Phase 4: Core UI
 
 - [ ] Replace page sketch with dashboard sections:
-- [ ] Today list (active puzzles + current status)
+- [x] Today list skeleton with signed-in feed builder section
 - [ ] Quick actions (`Open`, `Mark Completed`, `Mark Won`, `Mark Lost`, `Skip`)
-- [ ] Add custom puzzle form (URL, title, tags)
+- [x] Add custom puzzle form (URL, title, tags)
 - [ ] Recent history panel (last 7-30 days)
-- [ ] Empty state + loading states
+- [x] Empty state + loading states
 
 ## Phase 5: Metadata Enrichment
 
