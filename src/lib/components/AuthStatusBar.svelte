@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Bar, Button } from 'contain-css-svelte';
+	import { Bar, Button, Form, FormItem, Input } from 'contain-css-svelte';
 
 	type Props = {
 		isConfigured?: boolean;
@@ -33,7 +33,9 @@
 
 	const hasCredentials = $derived.by(() => email.trim().length > 0 && password.length >= 6);
 
-	function submitEmailSignIn() {
+	function submitEmailSignIn(event?: SubmitEvent) {
+		event?.preventDefault();
+
 		if (!hasCredentials) {
 			return;
 		}
@@ -64,30 +66,31 @@
 				<p>Sign in with Google or email/password to save puzzle progress.</p>
 				<Button primary onclick={onSignIn} disabled={isBusy}>Sign In with Google</Button>
 			</div>
-			<div class="email-auth">
-				<label>
-					<span>Email</span>
-					<input type="email" bind:value={email} placeholder="you@example.com" autocomplete="email" />
-				</label>
-				<label>
-					<span>Password</span>
-					<input
+			<Form fullWidth layout="above" onsubmit={submitEmailSignIn} --form-max-width="30rem">
+				<FormItem fullWidth>
+					{#snippet label()}Email{/snippet}
+					<Input type="email" bind:value={email} placeholder="you@example.com" autocomplete="email" />
+				</FormItem>
+				<FormItem fullWidth>
+					{#snippet label()}Password{/snippet}
+					<Input
 						type="password"
 						bind:value={password}
-						minlength="6"
+						minlength={6}
 						placeholder="6+ characters"
 						autocomplete="current-password"
 					/>
-				</label>
-				<div class="auth-actions">
-					<Button onclick={submitEmailSignIn} disabled={isBusy || !hasCredentials}>
-						Sign In with Email
-					</Button>
-					<Button secondary onclick={submitEmailSignUp} disabled={isBusy || !hasCredentials}>
-						Create Account
-					</Button>
-				</div>
-			</div>
+				</FormItem>
+				<FormItem fullWidth>
+					{#snippet label()}&nbsp;{/snippet}
+					<div class="auth-actions">
+						<Button type="submit" disabled={isBusy || !hasCredentials}>Sign In with Email</Button>
+						<Button type="button" secondary onclick={submitEmailSignUp} disabled={isBusy || !hasCredentials}>
+							Create Account
+						</Button>
+					</div>
+				</FormItem>
+			</Form>
 		{/if}
 
 		{#if errorMessage}
@@ -114,30 +117,6 @@
 	.auth-row-stack {
 		align-items: start;
 		flex-direction: column;
-	}
-
-	.email-auth {
-		display: grid;
-		gap: 0.5rem;
-		width: min(100%, 30rem);
-	}
-
-	label {
-		display: grid;
-		gap: 0.25rem;
-	}
-
-	span {
-		font-size: 0.9rem;
-	}
-
-	input {
-		background: var(--input-bg, var(--bg));
-		border: var(--border-width, 1px) solid var(--input-border-color, var(--border-color, #666));
-		border-radius: var(--border-radius, 0.35rem);
-		color: var(--input-fg, var(--fg));
-		font: inherit;
-		padding: 0.55rem 0.7rem;
 	}
 
 	.auth-actions {
