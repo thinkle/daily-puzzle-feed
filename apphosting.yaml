@@ -8,23 +8,34 @@ runConfig:
   # memoryMiB: 512
 
 # Environment variables and secrets.
-# Use CLI/App Hosting config to set values; do not commit literal keys.
-# firebase apphosting:secrets:set PUBLIC_FIREBASE_API_KEY --force --project daily-puzzle-feed
-# firebase apphosting:secrets:set PUBLIC_FIREBASE_AUTH_DOMAIN --force --project daily-puzzle-feed
-# firebase apphosting:secrets:set PUBLIC_FIREBASE_PROJECT_ID --force --project daily-puzzle-feed
-# firebase apphosting:secrets:set PUBLIC_FIREBASE_STORAGE_BUCKET --force --project daily-puzzle-feed
-# firebase apphosting:secrets:set PUBLIC_FIREBASE_MESSAGING_SENDER_ID --force --project daily-puzzle-feed
-# firebase apphosting:secrets:set PUBLIC_FIREBASE_APP_ID --force --project daily-puzzle-feed
-# firebase apphosting:secrets:set PUBLIC_FIREBASE_MEASUREMENT_ID --force --project daily-puzzle-feed
-# firebase apphosting:secrets:set PUBLIC_PUZZLE_METADATA_ENDPOINT --force --project daily-puzzle-feed
-# env:
-#   Configure environment variables.
-#   See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
-#   - variable: MESSAGE
-#     value: Hello world!
-#     availability:
-#       - BUILD
-#       - RUNTIME
+env:
+  - variable: PUBLIC_FIREBASE_API_KEY
+    secret: PUBLIC_FIREBASE_API_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: PUBLIC_FIREBASE_AUTH_DOMAIN
+    secret: PUBLIC_FIREBASE_AUTH_DOMAIN
+    availability: [BUILD, RUNTIME]
+  - variable: PUBLIC_FIREBASE_PROJECT_ID
+    secret: PUBLIC_FIREBASE_PROJECT_ID
+    availability: [BUILD, RUNTIME]
+  - variable: PUBLIC_FIREBASE_STORAGE_BUCKET
+    secret: PUBLIC_FIREBASE_STORAGE_BUCKET
+    availability: [BUILD, RUNTIME]
+  - variable: PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    secret: PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    availability: [BUILD, RUNTIME]
+  - variable: PUBLIC_FIREBASE_APP_ID
+    secret: PUBLIC_FIREBASE_APP_ID
+    availability: [BUILD, RUNTIME]
+  - variable: PUBLIC_FIREBASE_MEASUREMENT_ID
+    secret: PUBLIC_FIREBASE_MEASUREMENT_ID
+    availability: [BUILD, RUNTIME]
+  - variable: PUBLIC_PUZZLE_METADATA_ENDPOINT
+    secret: PUBLIC_PUZZLE_METADATA_ENDPOINT
+    availability: [BUILD, RUNTIME]
+  - variable: PUBLIC_ADMIN_EMAILS
+    secret: PUBLIC_ADMIN_EMAILS
+    availability: [BUILD, RUNTIME]
 
   # Grant access to secrets in Cloud Secret Manager.
   # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters

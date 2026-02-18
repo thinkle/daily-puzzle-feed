@@ -6,7 +6,7 @@ import {
 	type PuzzleDefinition,
 	type PuzzleDraftInput
 } from '$lib/model/puzzle';
-import { PUBLIC_PUZZLE_METADATA_ENDPOINT } from '$env/static/public';
+import * as publicEnv from '$env/static/public';
 import { getFirebaseAuth, getFirebaseDb, isFirebaseConfigured } from '$lib/firebase/client';
 import { collection, getDocs, limit, query, where, type DocumentData } from 'firebase/firestore';
 
@@ -187,7 +187,7 @@ async function findCanonicalPuzzleByUrl(normalizedUrl: string) {
 }
 
 async function fetchMetadataForUrl(url: string): Promise<ResolvedMetadata | null> {
-	const metadataEndpoint = PUBLIC_PUZZLE_METADATA_ENDPOINT;
+	const metadataEndpoint = publicEnv.PUBLIC_PUZZLE_METADATA_ENDPOINT;
 	if (!metadataEndpoint) {
 		return null;
 	}
