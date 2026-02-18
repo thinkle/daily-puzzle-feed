@@ -8,14 +8,23 @@ runConfig:
   # memoryMiB: 512
 
 # Environment variables and secrets.
+# Use CLI/App Hosting config to set values; do not commit literal keys.
+# firebase apphosting:secrets:set PUBLIC_FIREBASE_API_KEY --force --project daily-puzzle-feed
+# firebase apphosting:secrets:set PUBLIC_FIREBASE_AUTH_DOMAIN --force --project daily-puzzle-feed
+# firebase apphosting:secrets:set PUBLIC_FIREBASE_PROJECT_ID --force --project daily-puzzle-feed
+# firebase apphosting:secrets:set PUBLIC_FIREBASE_STORAGE_BUCKET --force --project daily-puzzle-feed
+# firebase apphosting:secrets:set PUBLIC_FIREBASE_MESSAGING_SENDER_ID --force --project daily-puzzle-feed
+# firebase apphosting:secrets:set PUBLIC_FIREBASE_APP_ID --force --project daily-puzzle-feed
+# firebase apphosting:secrets:set PUBLIC_FIREBASE_MEASUREMENT_ID --force --project daily-puzzle-feed
+# firebase apphosting:secrets:set PUBLIC_PUZZLE_METADATA_ENDPOINT --force --project daily-puzzle-feed
 # env:
-  # Configure environment variables.
-  # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
-  # - variable: MESSAGE
-  #   value: Hello world!
-  #   availability:
-  #     - BUILD
-  #     - RUNTIME
+#   Configure environment variables.
+#   See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
+#   - variable: MESSAGE
+#     value: Hello world!
+#     availability:
+#       - BUILD
+#       - RUNTIME
 
   # Grant access to secrets in Cloud Secret Manager.
   # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
