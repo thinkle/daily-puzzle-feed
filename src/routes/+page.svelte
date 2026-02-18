@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Page, Bar, Button, ButtonLink, Card, GridLayout, Tag, Tile } from 'contain-css-svelte';
+	import { Page, Bar, Button, ButtonLink, Card, GridLayout } from 'contain-css-svelte';
 	import {
 		authSession,
 		createEmailPasswordAccount,
@@ -12,9 +12,10 @@
 	import AuthStatusBar from '$lib/components/AuthStatusBar.svelte';
 	import AuthSignInPanel from '$lib/components/AuthSignInPanel.svelte';
 	import PuzzleApprovalPanel from '$lib/components/PuzzleApprovalPanel.svelte';
+	import PuzzleCard from '$lib/components/PuzzleCard.svelte';
 	import PuzzleCatalogPicker from '$lib/components/PuzzleCatalogPicker.svelte';
 	import PuzzleSubmitForm from '$lib/components/PuzzleSubmitForm.svelte';
-	import { listApprovedPuzzles } from '$lib/data/puzzles';
+	import { listApprovedPuzzles, updateApprovedPuzzle } from '$lib/data/puzzles';
 	import { resolvePuzzleUrl } from '$lib/data/puzzle-resolver';
 	import {
 		approvePuzzleSubmission,
@@ -23,15 +24,20 @@
 		savePuzzleSubmission,
 		updatePendingPuzzleSubmission
 	} from '$lib/data/puzzle-submissions';
+	import { loadUserFeed, savePlayEntry, saveUserFeedPuzzleIds } from '$lib/data/user-feed';
 	import { isFirebaseConfigured } from '$lib/firebase/client';
 	import {
 		arePuzzleUrlsEquivalent,
-		getPuzzleDisplayImageUrl,
-		PUZZLE_TAG_LABELS,
 		type PuzzleDefinition,
 		type PuzzleDraftInput,
 		type PuzzleSubmission
 	} from '$lib/model/puzzle';
+	import {
+		getTodayDateString,
+		type PlaysMap,
+		type PuzzleOutcome,
+		type PuzzlePlayEntry
+	} from '$lib/model/user-data';
 
 	const ADMIN_EMAILS = ['tmhinkle@gmail.com', 'thinkle@innovationcharter.org'];
 
@@ -43,6 +49,7 @@
 
 	let catalogPuzzles = $state<PuzzleDefinition[]>([]);
 	let feedPuzzleIds = $state<string[]>([]);
+	let plays = $state<PlaysMap>({});
 	let pendingSubmissions = $state<PuzzleSubmission[]>([]);
 
 	const isCurrentUserAdmin = $derived.by(() => {
@@ -68,6 +75,7 @@
 		if ($authSession.status !== 'signed_in') {
 			catalogPuzzles = [];
 			feedPuzzleIds = [];
+			plays = {};
 			pendingSubmissions = [];
 			dataError = '';
 			return;
@@ -76,13 +84,27 @@
 		void loadSignedInData();
 	});
 
+	function getCurrentUid(): string | null {
+		if ($authSession.status === 'signed_in' && $authSession.user) {
+			return $authSession.user.uid;
+		}
+		return null;
+	}
+
 	async function loadSignedInData() {
 		isDataLoading = true;
 		dataError = '';
 
 		try {
-			const approved = await listApprovedPuzzles();
+			const uid = getCurrentUid();
+			const [approved, userData] = await Promise.all([
+				listApprovedPuzzles(),
+				uid ? loadUserFeed(uid) : Promise.resolve({ feedPuzzleIds: [], plays: {} })
+			]);
+
 			catalogPuzzles = approved;
+			feedPuzzleIds = userData.feedPuzzleIds;
+			plays = userData.plays;
 
 			if (isCurrentUserAdmin) {
 				pendingSubmissions = await listPendingPuzzleSubmissions();
@@ -171,10 +193,62 @@
 		}
 
 		feedPuzzleIds = next;
+		void persistFeedIds();
 	}
 
 	function removePuzzleFromFeed(id: string) {
 		feedPuzzleIds = feedPuzzleIds.filter((puzzleId) => puzzleId !== id);
+		void persistFeedIds();
+	}
+
+	async function persistFeedIds() {
+		const uid = getCurrentUid();
+		if (!uid) return;
+		try {
+			await saveUserFeedPuzzleIds(uid, feedPuzzleIds);
+		} catch (error) {
+			dataError = error instanceof Error ? error.message : 'Could not save feed.';
+		}
+	}
+
+	function getTodayPlayEntry(puzzleId: string): PuzzlePlayEntry | undefined {
+		const today = getTodayDateString();
+		return plays[puzzleId]?.[today];
+	}
+
+	async function handlePlayClick(puzzleId: string) {
+		const uid = getCurrentUid();
+		if (!uid) return;
+
+		const today = getTodayDateString();
+		const existing = getTodayPlayEntry(puzzleId);
+
+		// Don't downgrade — if already played, keep it
+		if (existing?.progress === 'played') return;
+
+		const entry: PuzzlePlayEntry = { progress: 'visited' };
+		plays = { ...plays, [puzzleId]: { ...plays[puzzleId], [today]: entry } };
+
+		try {
+			await savePlayEntry(uid, puzzleId, today, entry);
+		} catch (error) {
+			dataError = error instanceof Error ? error.message : 'Could not save play state.';
+		}
+	}
+
+	async function handleMarkPlayed(puzzleId: string, outcome: PuzzleOutcome) {
+		const uid = getCurrentUid();
+		if (!uid) return;
+
+		const today = getTodayDateString();
+		const entry: PuzzlePlayEntry = { progress: 'played', outcome };
+		plays = { ...plays, [puzzleId]: { ...plays[puzzleId], [today]: entry } };
+
+		try {
+			await savePlayEntry(uid, puzzleId, today, entry);
+		} catch (error) {
+			dataError = error instanceof Error ? error.message : 'Could not save play state.';
+		}
 	}
 
 	async function handleResolvePuzzleUrl(url: string) {
@@ -286,6 +360,30 @@
 		}
 	}
 
+	async function handleEditCatalogPuzzle(
+		puzzle: PuzzleDefinition,
+		update: {
+			title: string;
+			canonicalUrl: string;
+			description?: string;
+			tags: PuzzleDefinition['tags'];
+			siteName?: string;
+		}
+	) {
+		try {
+			const updated = await updateApprovedPuzzle({
+				puzzleId: puzzle.id,
+				...update
+			});
+
+			if (updated) {
+				catalogPuzzles = catalogPuzzles.map((p) => (p.id === updated.id ? updated : p));
+			}
+		} catch (error) {
+			dataError = error instanceof Error ? error.message : 'Could not save puzzle edits.';
+		}
+	}
+
 	async function handleSaveSubmissionEdit(
 		submission: PuzzleSubmission,
 		update: {
@@ -378,9 +476,9 @@
 		<PuzzleCatalogPicker
 			catalog={catalogPuzzles}
 			addedPuzzleIds={feedPuzzleIds}
-			onAddSelected={addPuzzlesToFeed}
-			itemWidth="20rem"
-			gridGap="0.75rem"
+			isAdmin={isCurrentUserAdmin}
+			onAdd={(puzzle) => addPuzzlesToFeed([puzzle])}
+			onEditPuzzle={handleEditCatalogPuzzle}
 		/>
 
 		<h2>My Puzzle Feed</h2>
@@ -389,58 +487,74 @@
 		{:else}
 			<div class="feed-puzzles-wrap">
 				<GridLayout
-					--item-width="20rem"
+					--item-width="var(--card-width)"
 					--gap="0.75rem"
 					--grid-justify-content="start"
 					--grid-place-content="start"
 				>
 					{#each feedPuzzles as puzzle (puzzle.id)}
-						<Tile>
-							<div class="tile-content">
-								{#if getPuzzleDisplayImageUrl(puzzle)}
-									<img
-										class="puzzle-image"
-										src={getPuzzleDisplayImageUrl(puzzle)}
-										alt={`${puzzle.title} preview`}
-									/>
-								{/if}
-								<h3>{puzzle.title}</h3>
-								{#if puzzle.description}
-									<p>{puzzle.description}</p>
-								{/if}
-								<div class="tag-row">
-									{#each puzzle.tags as tag (tag)}
-										<Tag>{PUZZLE_TAG_LABELS[tag]}</Tag>
-									{/each}
-								</div>
-								<div class="feed-actions">
-									<ButtonLink href={puzzle.canonicalUrl} target="_blank" rel="noopener noreferrer">
-										Play
+						{@const todayPlay = getTodayPlayEntry(puzzle.id)}
+						<PuzzleCard {puzzle}>
+							{#snippet actions()}
+								<ButtonLink
+									href={puzzle.canonicalUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									onclick={() => handlePlayClick(puzzle.id)}
+								>
+									Play
+								</ButtonLink>
+								{#if puzzle.archive.enabled && puzzle.archive.url}
+									<ButtonLink
+										href={puzzle.archive.url}
+										target="_blank"
+										rel="noopener noreferrer"
+										secondary
+									>
+										Archive
 									</ButtonLink>
-									{#if puzzle.archive.enabled && puzzle.archive.url}
-										<ButtonLink
-											href={puzzle.archive.url}
-											target="_blank"
-											rel="noopener noreferrer"
-											secondary
-										>
-											Archive
-										</ButtonLink>
-									{/if}
-									{#if puzzle.unlimited.enabled && puzzle.unlimited.url}
-										<ButtonLink
-											href={puzzle.unlimited.url}
-											target="_blank"
-											rel="noopener noreferrer"
-											secondary
-										>
-											Unlimited
-										</ButtonLink>
-									{/if}
-									<Button onclick={() => removePuzzleFromFeed(puzzle.id)}>Remove</Button>
-								</div>
-							</div>
-						</Tile>
+								{/if}
+								{#if puzzle.unlimited.enabled && puzzle.unlimited.url}
+									<ButtonLink
+										href={puzzle.unlimited.url}
+										target="_blank"
+										rel="noopener noreferrer"
+										secondary
+									>
+										Unlimited
+									</ButtonLink>
+								{/if}
+								{#if todayPlay?.progress === 'played'}
+									<Button disabled>
+										{todayPlay.outcome === 'won'
+											? 'Won'
+											: todayPlay.outcome === 'lost'
+												? 'Lost'
+												: 'Played'}
+									</Button>
+								{:else}
+									<Button
+										secondary
+										onclick={() => handleMarkPlayed(puzzle.id, 'won')}
+									>
+										Won
+									</Button>
+									<Button
+										secondary
+										onclick={() => handleMarkPlayed(puzzle.id, 'lost')}
+									>
+										Lost
+									</Button>
+									<Button
+										secondary
+										onclick={() => handleMarkPlayed(puzzle.id, 'unknown')}
+									>
+										Played
+									</Button>
+								{/if}
+								<Button onclick={() => removePuzzleFromFeed(puzzle.id)}>Remove</Button>
+							{/snippet}
+						</PuzzleCard>
 					{/each}
 				</GridLayout>
 			</div>
@@ -473,36 +587,7 @@
 	}
 
 	h2,
-	h3,
 	p {
 		margin: 0;
-	}
-
-	.tile-content {
-		display: grid;
-		gap: 0.6rem;
-		padding-top: 1rem;
-		text-align: left;
-		width: 100%;
-	}
-
-	.puzzle-image {
-		border: 1px solid var(--border-color);
-		border-radius: var(--border-radius, 8px);
-		height: 7.5rem;
-		object-fit: cover;
-		width: 100%;
-	}
-
-	.feed-actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.25rem;
-	}
-
-	.tag-row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.25rem;
 	}
 </style>

@@ -1,34 +1,37 @@
 <script lang="ts">
-	import {
-		Button,
-		Container,
-		Form,
-		FormItem,
-		GridLayout,
-		Input,
-		Tag,
-		Tile
-	} from 'contain-css-svelte';
-	import { getPuzzleDisplayImageUrl, type PuzzleDefinition } from '$lib/model/puzzle';
+	import { Button, Container, Form, FormItem, GridLayout, Input } from 'contain-css-svelte';
+	import { type PuzzleDefinition, type PuzzleTag } from '$lib/model/puzzle';
+	import PuzzleCard from './PuzzleCard.svelte';
+	import PuzzleEditForm from './PuzzleEditForm.svelte';
 
 	type Props = {
 		catalog: PuzzleDefinition[];
 		addedPuzzleIds?: string[];
-		onAddSelected?: (puzzles: PuzzleDefinition[]) => void;
-		itemWidth?: string;
-		gridGap?: string;
+		isAdmin?: boolean;
+		onAdd?: (puzzle: PuzzleDefinition) => void;
+		onEditPuzzle?: (
+			puzzle: PuzzleDefinition,
+			update: {
+				title: string;
+				canonicalUrl: string;
+				description?: string;
+				tags: PuzzleTag[];
+				siteName?: string;
+			}
+		) => void | Promise<void>;
 	};
 
 	let {
 		catalog,
 		addedPuzzleIds = [],
-		onAddSelected = () => {},
-		itemWidth = '22rem',
-		gridGap = '0.75rem'
+		isAdmin = false,
+		onAdd = () => {},
+		onEditPuzzle = () => {}
 	}: Props = $props();
 
 	let filterText = $state('');
-	let selectedPuzzleIds = $state<string[]>([]);
+	let editingId = $state<string | null>(null);
+	let isEditBusy = $state(false);
 
 	const normalizedFilter = $derived.by(() => filterText.trim().toLowerCase());
 
@@ -51,48 +54,27 @@
 		});
 	});
 
-	const selectedAddableCount = $derived.by(() => {
-		const added = new Set(addedPuzzleIds);
-		return selectedPuzzleIds.filter((id) => !added.has(id)).length;
-	});
-
 	function isAdded(puzzleId: string) {
 		return addedPuzzleIds.includes(puzzleId);
 	}
 
-	function isSelected(puzzleId: string) {
-		return selectedPuzzleIds.includes(puzzleId);
-	}
-
-	function updateSelection(puzzleId: string, event: Event) {
-		if (isAdded(puzzleId)) {
-			selectedPuzzleIds = selectedPuzzleIds.filter((id) => id !== puzzleId);
-			return;
+	async function handleSaveEdit(
+		puzzle: PuzzleDefinition,
+		update: {
+			title: string;
+			canonicalUrl: string;
+			description?: string;
+			tags: PuzzleTag[];
+			siteName?: string;
 		}
-
-		const checked = (event.target as HTMLInputElement).checked;
-
-		if (checked && !selectedPuzzleIds.includes(puzzleId)) {
-			selectedPuzzleIds = [...selectedPuzzleIds, puzzleId];
-			return;
+	) {
+		isEditBusy = true;
+		try {
+			await onEditPuzzle(puzzle, update);
+			editingId = null;
+		} finally {
+			isEditBusy = false;
 		}
-
-		if (!checked) {
-			selectedPuzzleIds = selectedPuzzleIds.filter((id) => id !== puzzleId);
-		}
-	}
-
-	function addSelectedPuzzles() {
-		const selected = catalog.filter(
-			(puzzle) => selectedPuzzleIds.includes(puzzle.id) && !isAdded(puzzle.id)
-		);
-
-		if (!selected.length) {
-			return;
-		}
-
-		onAddSelected(selected);
-		selectedPuzzleIds = [];
 	}
 </script>
 
@@ -107,81 +89,36 @@
 		</FormItem>
 	</Form>
 
-	<GridLayout --item-width={itemWidth} --gap={gridGap} --tag-font-size="0.7em">
+	<GridLayout --item-width="var(--card-width)" --tag-font-size="0.7em">
 		{#each visibleCatalog as puzzle (puzzle.id)}
-			<Tile
-				selectable
-				checked={isSelected(puzzle.id)}
-				onchange={(event) => updateSelection(puzzle.id, event)}
-			>
-				<div class="tile-content">
-					{#if getPuzzleDisplayImageUrl(puzzle)}
-						<img
-							class="puzzle-image"
-							src={getPuzzleDisplayImageUrl(puzzle)}
-							alt={`${puzzle.title} preview`}
-						/>
-					{/if}
-					<h3>{puzzle.title}</h3>
-					<p>{puzzle.description ?? 'No description yet.'}</p>
-					<div class="tag-row">
-						{#each puzzle.tags as tag (tag)}
-							<Tag>{tag}</Tag>
-						{/each}
-					</div>
-					<div class="tag-row">
-						{#if puzzle.archive.enabled}
-							<Tag>archive</Tag>
-						{/if}
-						{#if puzzle.unlimited.enabled}
-							<Tag>unlimited</Tag>
+			{#if editingId === puzzle.id}
+				<PuzzleEditForm
+					initial={puzzle}
+					isBusy={isEditBusy}
+					onSave={(update) => handleSaveEdit(puzzle, update)}
+					onCancel={() => (editingId = null)}
+				/>
+			{:else}
+				<PuzzleCard {puzzle}>
+					{#snippet actions()}
+						{#if isAdmin}
+							<Button onclick={() => (editingId = puzzle.id)}>Edit</Button>
 						{/if}
 						{#if isAdded(puzzle.id)}
-							<Tag>in feed</Tag>
+							<Button disabled>Added</Button>
+						{:else}
+							<Button primary onclick={() => onAdd(puzzle)}>Add</Button>
 						{/if}
-					</div>
-				</div>
-			</Tile>
+					{/snippet}
+				</PuzzleCard>
+			{/if}
 		{/each}
 	</GridLayout>
-
-	<div class="actions">
-		<Button primary onclick={addSelectedPuzzles} disabled={selectedAddableCount === 0}>
-			Add Selected ({selectedAddableCount})
-		</Button>
-	</div>
 </Container>
 
 <style>
 	h2,
-	h3,
 	p {
 		margin: 0;
-	}
-
-	.tile-content {
-		display: grid;
-		gap: 0.5rem;
-		padding-top: 1rem;
-		text-align: left;
-		width: 100%;
-	}
-
-	.tag-row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.25rem;
-	}
-
-	.puzzle-image {
-		border: 1px solid var(--border-color);
-		border-radius: var(--border-radius, 8px);
-		height: 6.5rem;
-		object-fit: cover;
-		width: 100%;
-	}
-
-	.actions {
-		margin-top: 1rem;
 	}
 </style>

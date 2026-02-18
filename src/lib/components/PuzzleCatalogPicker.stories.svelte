@@ -38,7 +38,7 @@
 		args: {
 			catalog: sampleCatalog,
 			addedPuzzleIds: [],
-			onAddSelected: fn()
+			onAdd: fn()
 		}
 	});
 </script>

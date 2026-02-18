@@ -1,6 +1,22 @@
 import { getFirebaseDb, isFirebaseConfigured } from '$lib/firebase/client';
-import { normalizeTags, type PuzzleDefinition, type PuzzleImageMode } from '$lib/model/puzzle';
-import { collection, getDocs, limit, query, where, type DocumentData } from 'firebase/firestore';
+import {
+	normalizePuzzleUrl,
+	normalizeTags,
+	type PuzzleDefinition,
+	type PuzzleImageMode,
+	type PuzzleTag
+} from '$lib/model/puzzle';
+import {
+	collection,
+	doc,
+	getDoc,
+	getDocs,
+	limit,
+	query,
+	updateDoc,
+	where,
+	type DocumentData
+} from 'firebase/firestore';
 
 function asString(value: unknown) {
 	return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
@@ -48,6 +64,55 @@ function mapFirestorePuzzle(docId: string, data: DocumentData): PuzzleDefinition
 		active: data.active !== false,
 		source: 'canonical'
 	};
+}
+
+export type UpdateApprovedPuzzleArgs = {
+	puzzleId: string;
+	title: string;
+	canonicalUrl: string;
+	description?: string;
+	tags: PuzzleTag[];
+	siteName?: string;
+};
+
+export async function updateApprovedPuzzle({
+	puzzleId,
+	title,
+	canonicalUrl,
+	description,
+	tags,
+	siteName
+}: UpdateApprovedPuzzleArgs): Promise<PuzzleDefinition | null> {
+	if (!isFirebaseConfigured) {
+		return null;
+	}
+
+	const cleanedTitle = title.trim();
+	if (!cleanedTitle) {
+		throw new Error('Title is required.');
+	}
+
+	const normalizedUrl = normalizePuzzleUrl(canonicalUrl);
+	const normalizedTags = normalizeTags(tags);
+
+	const db = getFirebaseDb();
+	const puzzleRef = doc(db, 'puzzles', puzzleId);
+
+	await updateDoc(puzzleRef, {
+		title: cleanedTitle,
+		canonicalUrl: normalizedUrl,
+		canonicalUrlNormalized: normalizedUrl,
+		description: description?.trim() || null,
+		tags: normalizedTags,
+		siteName: siteName?.trim() || null
+	});
+
+	const updatedSnap = await getDoc(puzzleRef);
+	if (!updatedSnap.exists()) {
+		return null;
+	}
+
+	return mapFirestorePuzzle(updatedSnap.id, updatedSnap.data());
 }
 
 export async function listApprovedPuzzles(maxResults = 500): Promise<PuzzleDefinition[]> {
