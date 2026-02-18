@@ -1,0 +1,47 @@
+@font-face {
+	font-family: 'Job Clarendon Wide';
+	src: url('/fonts/JobClarendonWideVariable[wght].woff2') format('woff2');
+	font-style: normal;
+	font-weight: 1 900;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Daily Special';
+	src: url('/fonts/DailySpecialVariable-White.woff2') format('woff2');
+	font-style: normal;
+	font-weight: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Daily Special Regular';
+	src: url('/fonts/DailySpecialVariable-Regular.woff2') format('woff2');
+	font-style: normal;
+	font-weight: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Output Sans 2';
+	src: url('/fonts/OutputSans2Beta-Regular.woff2') format('woff2');
+	font-style: normal italic;
+	font-weight: 1 800;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Gimlet Sans Mono';
+	src: url('/fonts/GimletSansMono[opsz,slnt,wght]_BETA.woff2') format('woff2');
+	font-style: normal;
+	font-weight: 300 800;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Gimlet Sans Mono';
+	src: url('/fonts/GimletSansMono[opsz,slnt,wght]_BETA.woff2') format('woff2');
+	font-style: italic;
+	font-weight: 300 800;
+	font-display: swap;
+}

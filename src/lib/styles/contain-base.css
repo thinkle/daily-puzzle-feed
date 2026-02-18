@@ -6,4 +6,24 @@
 	--secondary-bg: #1a232c;
 	--secondary-fg: #e8edf2;
 	--border-color: #304354;
+	--tile-width: 18rem;
+	--tile-height: 24rem;
+	--tile-checkbox-bg: #27415b;
+	--tile-checkbox-fg: #e8edf2;
+	--tile-checkbox-checked-bg: var(--primary-bg);
+	--tile-checkbox-checked-fg: var(--primary-fg);
+
+	/* Typography */
+	--heading-font-family: 'Daily Special';
+	--ui-font-family: 'Output Sans 2', sans-serif;
+	--font-family: 'Output Sans 2', sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: var(--heading-font-family);
 }
