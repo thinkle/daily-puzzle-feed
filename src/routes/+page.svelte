@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Page, Bar, Button, ButtonLink, Card, GridLayout } from 'contain-css-svelte';
+	import { Page, Bar, Card, TabBar, TabItem } from 'contain-css-svelte';
 	import {
 		authSession,
 		createEmailPasswordAccount,
@@ -12,7 +12,7 @@
 	import AuthStatusBar from '$lib/components/AuthStatusBar.svelte';
 	import AuthSignInPanel from '$lib/components/AuthSignInPanel.svelte';
 	import PuzzleApprovalPanel from '$lib/components/PuzzleApprovalPanel.svelte';
-	import PuzzleCard from '$lib/components/PuzzleCard.svelte';
+	import MyFeedPanel from '$lib/components/MyFeedPanel.svelte';
 	import PuzzleCatalogPicker from '$lib/components/PuzzleCatalogPicker.svelte';
 	import PuzzleSubmitForm from '$lib/components/PuzzleSubmitForm.svelte';
 	import { listApprovedPuzzles, updateApprovedPuzzle } from '$lib/data/puzzles';
@@ -211,17 +211,12 @@
 		}
 	}
 
-	function getTodayPlayEntry(puzzleId: string): PuzzlePlayEntry | undefined {
-		const today = getTodayDateString();
-		return plays[puzzleId]?.[today];
-	}
-
 	async function handlePlayClick(puzzleId: string) {
 		const uid = getCurrentUid();
 		if (!uid) return;
 
 		const today = getTodayDateString();
-		const existing = getTodayPlayEntry(puzzleId);
+		const existing = plays[puzzleId]?.[today];
 
 		// Don't downgrade — if already played, keep it
 		if (existing?.progress === 'played') return;
@@ -427,6 +422,8 @@
 			isReviewBusy = false;
 		}
 	}
+
+	let activeTab: 'feed' | 'add' | 'custom' | 'admin' = $state('feed');
 </script>
 
 <Page>
@@ -445,6 +442,16 @@
 			</div>
 		</Bar>
 	{/snippet}
+	<TabBar>
+		<TabItem active={activeTab === 'feed'} onclick={() => (activeTab = 'feed')}>My Feed</TabItem>
+		<TabItem active={activeTab === 'add'} onclick={() => (activeTab = 'add')}>Add Puzzle</TabItem>
+		<TabItem active={activeTab === 'custom'} onclick={() => (activeTab = 'custom')}
+			>Custom Puzzle</TabItem
+		>
+		{#if isCurrentUserAdmin}
+			<TabItem active={activeTab === 'admin'} onclick={() => (activeTab = 'admin')}>Admin</TabItem>
+		{/if}
+	</TabBar>
 
 	{#if $authSession.status === 'loading'}
 		<Card>
@@ -467,100 +474,29 @@
 			<Card><p>Loading puzzles...</p></Card>
 		{/if}
 
-		<PuzzleSubmitForm
-			onResolveUrl={handleResolvePuzzleUrl}
-			onAddExistingPuzzle={addExistingPuzzleToFeed}
-			onSubmitPuzzle={addCustomPuzzle}
-		/>
-
-		<PuzzleCatalogPicker
-			catalog={catalogPuzzles}
-			addedPuzzleIds={feedPuzzleIds}
-			isAdmin={isCurrentUserAdmin}
-			onAdd={(puzzle) => addPuzzlesToFeed([puzzle])}
-			onEditPuzzle={handleEditCatalogPuzzle}
-		/>
-
-		<h2>My Puzzle Feed</h2>
-		{#if feedPuzzles.length === 0}
-			<p>No puzzles in your feed yet.</p>
-		{:else}
-			<div class="feed-puzzles-wrap">
-				<GridLayout
-					--item-width="var(--card-width)"
-					--gap="0.75rem"
-					--grid-justify-content="start"
-					--grid-place-content="start"
-				>
-					{#each feedPuzzles as puzzle (puzzle.id)}
-						{@const todayPlay = getTodayPlayEntry(puzzle.id)}
-						<PuzzleCard {puzzle}>
-							{#snippet actions()}
-								<ButtonLink
-									href={puzzle.canonicalUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									onclick={() => handlePlayClick(puzzle.id)}
-								>
-									Play
-								</ButtonLink>
-								{#if puzzle.archive.enabled && puzzle.archive.url}
-									<ButtonLink
-										href={puzzle.archive.url}
-										target="_blank"
-										rel="noopener noreferrer"
-										secondary
-									>
-										Archive
-									</ButtonLink>
-								{/if}
-								{#if puzzle.unlimited.enabled && puzzle.unlimited.url}
-									<ButtonLink
-										href={puzzle.unlimited.url}
-										target="_blank"
-										rel="noopener noreferrer"
-										secondary
-									>
-										Unlimited
-									</ButtonLink>
-								{/if}
-								{#if todayPlay?.progress === 'played'}
-									<Button disabled>
-										{todayPlay.outcome === 'won'
-											? 'Won'
-											: todayPlay.outcome === 'lost'
-												? 'Lost'
-												: 'Played'}
-									</Button>
-								{:else}
-									<Button
-										secondary
-										onclick={() => handleMarkPlayed(puzzle.id, 'won')}
-									>
-										Won
-									</Button>
-									<Button
-										secondary
-										onclick={() => handleMarkPlayed(puzzle.id, 'lost')}
-									>
-										Lost
-									</Button>
-									<Button
-										secondary
-										onclick={() => handleMarkPlayed(puzzle.id, 'unknown')}
-									>
-										Played
-									</Button>
-								{/if}
-								<Button onclick={() => removePuzzleFromFeed(puzzle.id)}>Remove</Button>
-							{/snippet}
-						</PuzzleCard>
-					{/each}
-				</GridLayout>
-			</div>
-		{/if}
-
-		{#if isCurrentUserAdmin}
+		{#if activeTab === 'feed'}
+			<MyFeedPanel
+				{feedPuzzles}
+				{plays}
+				onPlayClick={handlePlayClick}
+				onMarkPlayed={handleMarkPlayed}
+				onRemove={removePuzzleFromFeed}
+			/>
+		{:else if activeTab === 'add'}
+			<PuzzleCatalogPicker
+				catalog={catalogPuzzles}
+				addedPuzzleIds={feedPuzzleIds}
+				isAdmin={isCurrentUserAdmin}
+				onAdd={(puzzle) => addPuzzlesToFeed([puzzle])}
+				onEditPuzzle={handleEditCatalogPuzzle}
+			/>
+		{:else if activeTab === 'custom'}
+			<PuzzleSubmitForm
+				onResolveUrl={handleResolvePuzzleUrl}
+				onAddExistingPuzzle={addExistingPuzzleToFeed}
+				onSubmitPuzzle={addCustomPuzzle}
+			/>
+		{:else if activeTab === 'admin' && isCurrentUserAdmin}
 			<PuzzleApprovalPanel
 				submissions={pendingSubmissions}
 				isBusy={isReviewBusy}
@@ -583,11 +519,6 @@
 	}
 
 	h1 {
-		margin: 0;
-	}
-
-	h2,
-	p {
 		margin: 0;
 	}
 </style>
