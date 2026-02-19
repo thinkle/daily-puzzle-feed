@@ -26,3 +26,8 @@ test-results
 
 *storybook.log
 storybook-static
+
+# Firebase local cache/logs
+.firebase
+firebase-debug.log
+firebase-debug.*.log
