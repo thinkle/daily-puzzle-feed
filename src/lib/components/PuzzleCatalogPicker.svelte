@@ -78,45 +78,57 @@
 	}
 </script>
 
-<Container maxWidth="1800px" bg="var(--container-bg)" fg="var(--container-fg)">
-	<h2>Browse Puzzle Catalog</h2>
-	<p>Select puzzles and add them to your feed.</p>
+<div class="puzzle-catalog-picker">
+	<Container maxWidth="1800px" bg="var(--container-bg)" fg="var(--container-fg)">
+		<h2>Browse Puzzle Catalog</h2>
+		<p>Select puzzles and add them to your feed.</p>
 
-	<Form layout="above" fullWidth>
-		<FormItem fullWidth>
-			{#snippet label()}Filter{/snippet}
-			<Input bind:value={filterText} placeholder="Search title, tags, URL..." />
-		</FormItem>
-	</Form>
+		<Form layout="above" fullWidth>
+			<FormItem fullWidth>
+				{#snippet label()}Filter{/snippet}
+				<Input bind:value={filterText} placeholder="Search title, tags, URL..." />
+			</FormItem>
+		</Form>
 
-	<GridLayout --item-width="var(--card-width)" --tag-font-size="0.7em">
-		{#each visibleCatalog as puzzle (puzzle.id)}
-			{#if editingId === puzzle.id}
-				<PuzzleEditForm
-					initial={puzzle}
-					isBusy={isEditBusy}
-					onSave={(update) => handleSaveEdit(puzzle, update)}
-					onCancel={() => (editingId = null)}
-				/>
-			{:else}
-				<PuzzleCard {puzzle}>
-					{#snippet actions()}
-						{#if isAdmin}
-							<Button onclick={() => (editingId = puzzle.id)}>Edit</Button>
-						{/if}
-						{#if isAdded(puzzle.id)}
-							<Button disabled>Added</Button>
-						{:else}
-							<Button primary onclick={() => onAdd(puzzle)}>Add</Button>
-						{/if}
-					{/snippet}
-				</PuzzleCard>
-			{/if}
-		{/each}
-	</GridLayout>
-</Container>
+		<GridLayout --item-width="var(--grid-width)" --tag-font-size="0.7em">
+			{#each visibleCatalog as puzzle (puzzle.id)}
+				{#if editingId === puzzle.id}
+					<PuzzleEditForm
+						initial={puzzle}
+						isBusy={isEditBusy}
+						onSave={(update) => handleSaveEdit(puzzle, update)}
+						onCancel={() => (editingId = null)}
+					/>
+				{:else}
+					<PuzzleCard {puzzle}>
+						{#snippet actions()}
+							{#if isAdmin}
+								<Button onclick={() => (editingId = puzzle.id)}>Edit</Button>
+							{/if}
+							{#if isAdded(puzzle.id)}
+								<Button disabled>Added</Button>
+							{:else}
+								<Button primary onclick={() => onAdd(puzzle)}>Add</Button>
+							{/if}
+						{/snippet}
+					</PuzzleCard>
+				{/if}
+			{/each}
+		</GridLayout>
+	</Container>
+</div>
 
 <style>
+	.puzzle-catalog-picker {
+		display: contents;
+		--grid-width: var(--card-width);
+	}
+	@media (max-width: 600px) {
+		.puzzle-catalog-picker {
+			--grid-width: var(--card-width-small);
+			--card-margin: 0;
+		}
+	}
 	h2,
 	p {
 		margin: 0;

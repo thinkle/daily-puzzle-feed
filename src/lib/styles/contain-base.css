@@ -102,3 +102,11 @@ h1 {
 		--tile-height: 21.5rem;
 	}
 }
+
+/* Let's add some responsive styles... on Mobile we want... */
+@media (max-width: 650px) {
+	:root {
+		--tab-bar-gap: 2px;
+		--bar-height: auto; /* Let the content dictate height on mobile, but keep it tight */
+	}
+}
