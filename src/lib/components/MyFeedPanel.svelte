@@ -292,6 +292,7 @@
 
 	.row-title {
 		font-weight: var(--bold);
+		font-family: var(--heading-font-family);
 	}
 
 	.row-actions-primary {
