@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Accordion, Button, ButtonLink, Input, MiniButton, Tag } from 'contain-css-svelte';
+	import { Accordion, Button, ButtonLink, Input, Tag } from 'contain-css-svelte';
 	import type { PuzzleDefinition } from '$lib/model/puzzle';
 	import {
 		getTodayDateString,
@@ -31,6 +31,7 @@
 	}: Props = $props();
 
 	let sortByStreak = $state(false);
+	let isEditMode = $state(false);
 	let editingSeedFor = $state<string | null>(null);
 	let seedInputValue = $state('');
 
@@ -99,12 +100,19 @@
 			</div>
 			<div class="streak-controls">
 				<span class="streak-label">Streak</span>
-				<span class="streak-badge" class:zero-streak={streak === 0} title="{streak}-day streak"
-					>{streak}d</span
+				<Button
+					secondary
+					--button-padding="0.12rem 0.45rem"
+					--button-shadow-distance="0"
+					--button-shadow-blur="0"
+					--button-border-radius="999px"
+					--button-font-size="0.8em"
+					--button-margin="0"
+					aria-label={`Edit streak for ${puzzle.title}`}
+					onclick={() => startEditingSeed(puzzle.id)}
 				>
-				<MiniButton info onclick={() => startEditingSeed(puzzle.id)}>
-					{seed ? `Edit (${seed.value})` : 'Edit streak'}
-				</MiniButton>
+					{streak}d
+				</Button>
 			</div>
 		</div>
 		<div class="row-actions-primary">
@@ -134,20 +142,33 @@
 			{/if}
 		</div>
 		<div class="row-actions-secondary">
-			<MiniButton danger onclick={() => onRemove(puzzle.id)}>Remove</MiniButton>
+			{#if isEditMode}
+				<Button danger --button-padding="0.3rem 0.65rem" onclick={() => onRemove(puzzle.id)}
+					>Remove</Button
+				>
+			{/if}
 		</div>
 		{#if editingSeedFor === puzzle.id}
 			<div class="seed-form">
-				<span class="seed-label">Streak before this app:</span>
+				<span class="seed-label">Current streak:</span>
 				<Input
 					type="number"
 					min="1"
+					placeholder="0"
 					--input-width="6rem"
+					--input-padding="0.3rem 0.5rem"
+					--input-bg="var(--secondary-bg)"
+					--input-fg="var(--secondary-fg)"
+					--input-border="var(--border-width, 1px) var(--border-style, solid) var(--border-color)"
 					bind:value={seedInputValue}
 					onkeydown={(e) => e.key === 'Enter' && saveSeed(puzzle.id)}
 				/>
-				<MiniButton primary onclick={() => saveSeed(puzzle.id)}>Save</MiniButton>
-				<MiniButton onclick={() => (editingSeedFor = null)}>Cancel</MiniButton>
+				<Button primary --button-padding="0.3rem 0.65rem" onclick={() => saveSeed(puzzle.id)}
+					>Save</Button
+				>
+				<Button --button-padding="0.3rem 0.65rem" onclick={() => (editingSeedFor = null)}
+					>Cancel</Button
+				>
 			</div>
 		{/if}
 	</li>
@@ -160,6 +181,11 @@
 			<span class="progress-text">{donePuzzles.length} of {feedPuzzles.length} done today</span>
 		{:else if feedPuzzles.length > 0}
 			<span class="progress-text">{feedPuzzles.length} puzzle{feedPuzzles.length === 1 ? '' : 's'} to do</span>
+		{/if}
+		{#if feedPuzzles.length > 0}
+			<Button secondary onclick={() => (isEditMode = !isEditMode)}>
+				{isEditMode ? 'Done editing' : 'Edit list'}
+			</Button>
 		{/if}
 		{#if feedPuzzles.length > 1}
 			<Button secondary onclick={() => (sortByStreak = !sortByStreak)}>
@@ -305,21 +331,4 @@
 		font-size: 0.875em;
 	}
 
-	.streak-badge {
-		font-size: 0.75em;
-		font-weight: var(--bold);
-		padding: 0.15em 0.45em;
-		border-radius: 999px;
-		background: color-mix(in srgb, var(--warning-bg) 15%, var(--bg));
-		color: var(--warning-bg);
-		border: var(--border-width, 1px) var(--border-style, solid)
-			color-mix(in srgb, var(--warning-bg) 40%, transparent);
-		white-space: nowrap;
-	}
-
-	.streak-badge.zero-streak {
-		background: color-mix(in srgb, var(--secondary-bg, var(--bg)) 50%, var(--bg));
-		color: var(--secondary-fg, var(--fg));
-		border-color: color-mix(in srgb, var(--border-color) 70%, transparent);
-	}
 </style>
