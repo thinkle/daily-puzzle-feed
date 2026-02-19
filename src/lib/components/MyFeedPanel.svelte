@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { Accordion, Button, ButtonLink, Tag } from 'contain-css-svelte';
 	import type { PuzzleDefinition } from '$lib/model/puzzle';
-	import { getTodayDateString, type PlaysMap, type PuzzleOutcome } from '$lib/model/user-data';
+	import {
+		getTodayDateString,
+		calculateStreak,
+		type PlaysMap,
+		type PuzzleOutcome
+	} from '$lib/model/user-data';
 
 	type Props = {
 		feedPuzzles: PuzzleDefinition[];
@@ -13,9 +18,15 @@
 
 	let { feedPuzzles, plays, onPlayClick, onMarkPlayed, onRemove }: Props = $props();
 
+	let sortByStreak = $state(false);
+
 	function getTodayPlayEntry(puzzleId: string) {
 		const today = getTodayDateString();
 		return plays[puzzleId]?.[today];
+	}
+
+	function getStreak(puzzleId: string): number {
+		return calculateStreak(plays[puzzleId] ?? {});
 	}
 
 	const pendingPuzzles = $derived(
@@ -24,12 +35,22 @@
 	const donePuzzles = $derived(
 		feedPuzzles.filter((p) => getTodayPlayEntry(p.id)?.progress === 'played')
 	);
+
+	const sortedPendingPuzzles = $derived.by(() => {
+		if (!sortByStreak) return pendingPuzzles;
+		return [...pendingPuzzles].sort((a, b) => getStreak(b.id) - getStreak(a.id));
+	});
+	const sortedDonePuzzles = $derived.by(() => {
+		if (!sortByStreak) return donePuzzles;
+		return [...donePuzzles].sort((a, b) => getStreak(b.id) - getStreak(a.id));
+	});
 </script>
 
 {#snippet puzzleRow(puzzle: PuzzleDefinition)}
 	{@const todayPlay = getTodayPlayEntry(puzzle.id)}
 	{@const isVisited = todayPlay?.progress === 'visited'}
 	{@const isPlayed = todayPlay?.progress === 'played'}
+	{@const streak = getStreak(puzzle.id)}
 	<li class="puzzle-row" class:visited={isVisited} class:played={isPlayed}>
 		<div class="row-info">
 			<span class="row-title">{puzzle.title}</span>
@@ -43,6 +64,9 @@
 				{/if}
 			{:else if isVisited}
 				<Tag info>In progress</Tag>
+			{/if}
+			{#if streak >= 1}
+				<span class="streak-badge" title="{streak}-day streak">{streak}d</span>
 			{/if}
 		</div>
 		<div class="row-actions">
@@ -93,25 +117,30 @@
 		{:else if feedPuzzles.length > 0}
 			<span class="progress-text">{feedPuzzles.length} puzzle{feedPuzzles.length === 1 ? '' : 's'} to do</span>
 		{/if}
+		{#if feedPuzzles.length > 1}
+			<Button secondary onclick={() => (sortByStreak = !sortByStreak)}>
+				{sortByStreak ? 'Sorted by streak' : 'Sort by streak'}
+			</Button>
+		{/if}
 	</div>
 	{#if feedPuzzles.length === 0}
 		<p>No puzzles in your feed yet. Add some from the "Add Puzzle" tab!</p>
 	{:else}
-		{#if pendingPuzzles.length > 0}
+		{#if sortedPendingPuzzles.length > 0}
 			<ul class="puzzle-list">
-				{#each pendingPuzzles as puzzle (puzzle.id)}
+				{#each sortedPendingPuzzles as puzzle (puzzle.id)}
 					{@render puzzleRow(puzzle)}
 				{/each}
 			</ul>
 		{:else}
 			<p class="all-done">All done for today!</p>
 		{/if}
-		{#if donePuzzles.length > 0}
+		{#if sortedDonePuzzles.length > 0}
 			<Accordion>
-				<details open={pendingPuzzles.length === 0}>
-					<summary>Done today ({donePuzzles.length})</summary>
+				<details open={sortedPendingPuzzles.length === 0}>
+					<summary>Done today ({sortedDonePuzzles.length})</summary>
 					<ul class="puzzle-list">
-						{#each donePuzzles as puzzle (puzzle.id)}
+						{#each sortedDonePuzzles as puzzle (puzzle.id)}
 							{@render puzzleRow(puzzle)}
 						{/each}
 					</ul>
@@ -190,5 +219,16 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.3rem;
+	}
+
+	.streak-badge {
+		font-size: 0.72em;
+		font-weight: 700;
+		padding: 0.15em 0.45em;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--warning-bg, #ff9800) 18%, transparent);
+		color: var(--warning-fg, #b45309);
+		border: 1px solid color-mix(in srgb, var(--warning-bg, #ff9800) 35%, transparent);
+		white-space: nowrap;
 	}
 </style>
