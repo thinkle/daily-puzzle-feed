@@ -22,15 +22,20 @@
       ]
     }
   ],
-  "apphosting": {
-    "backendId": "daily-puzzle-feed",
-    "rootDir": "/",
+  "hosting": {
+    "public": "build",
     "ignore": [
       "node_modules",
       ".git",
       "firebase-debug.log",
       "firebase-debug.*.log",
       "functions"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   }
 }
