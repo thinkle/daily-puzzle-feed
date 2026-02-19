@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Accordion, Button, ButtonLink, Tag } from 'contain-css-svelte';
+	import { Accordion, Button, ButtonLink, Input, MiniButton, Tag } from 'contain-css-svelte';
 	import type { PuzzleDefinition } from '$lib/model/puzzle';
 	import {
 		getTodayDateString,
@@ -32,7 +32,7 @@
 
 	let sortByStreak = $state(false);
 	let editingSeedFor = $state<string | null>(null);
-	let seedInputValue = $state(0);
+	let seedInputValue = $state('');
 
 	function getTodayPlayEntry(puzzleId: string) {
 		const today = getTodayDateString();
@@ -45,12 +45,13 @@
 
 	function startEditingSeed(puzzleId: string) {
 		editingSeedFor = puzzleId;
-		seedInputValue = streakSeeds[puzzleId]?.value ?? 0;
+		seedInputValue = String(streakSeeds[puzzleId]?.value ?? '');
 	}
 
 	function saveSeed(puzzleId: string) {
-		if (seedInputValue > 0) {
-			onSetStreakSeed(puzzleId, { value: seedInputValue, date: getTodayDateString() });
+		const value = Number.parseInt(seedInputValue, 10);
+		if (Number.isFinite(value) && value > 0) {
+			onSetStreakSeed(puzzleId, { value, date: getTodayDateString() });
 		}
 		editingSeedFor = null;
 	}
@@ -80,76 +81,73 @@
 	{@const seed = streakSeeds[puzzle.id]}
 	<li class="puzzle-row" class:visited={isVisited} class:played={isPlayed}>
 		<div class="row-info">
-			<span class="row-title">{puzzle.title}</span>
-			{#if isPlayed}
-				{#if todayPlay.outcome === 'won'}
-					<Tag success>Won</Tag>
-				{:else if todayPlay.outcome === 'lost'}
-					<Tag danger>Lost</Tag>
+			<div class="row-main">
+				<span class="row-title">{puzzle.title}</span>
+				{#if isPlayed}
+					{#if todayPlay.outcome === 'won'}
+						<Tag success>Won</Tag>
+					{:else if todayPlay.outcome === 'lost'}
+						<Tag danger>Lost</Tag>
+					{:else}
+						<Tag>Played</Tag>
+					{/if}
+				{:else if isVisited}
+					<Tag info>Awaiting result</Tag>
 				{:else}
-					<Tag secondary>Played</Tag>
+					<Tag>Not started</Tag>
 				{/if}
-			{:else if isVisited}
-				<Tag info>In progress</Tag>
-			{/if}
-			{#if streak >= 1}
-				<span class="streak-badge" title="{streak}-day streak">{streak}d</span>
+			</div>
+			<div class="streak-controls">
+				<span class="streak-label">Streak</span>
+				<span class="streak-badge" class:zero-streak={streak === 0} title="{streak}-day streak"
+					>{streak}d</span
+				>
+				<MiniButton info onclick={() => startEditingSeed(puzzle.id)}>
+					{seed ? `Edit (${seed.value})` : 'Edit streak'}
+				</MiniButton>
+			</div>
+		</div>
+		<div class="row-actions-primary">
+			{#if !isVisited && !isPlayed}
+				<ButtonLink
+					href={puzzle.canonicalUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					onclick={() => onPlayClick(puzzle.id)}
+					primary
+				>
+					Play
+				</ButtonLink>
+			{:else if isVisited && !isPlayed}
+				<Button success onclick={() => onMarkPlayed(puzzle.id, 'won')}>Won</Button>
+				<Button danger onclick={() => onMarkPlayed(puzzle.id, 'lost')}>Lost</Button>
+				<ButtonLink
+					href={puzzle.canonicalUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					onclick={() => onPlayClick(puzzle.id)}
+					secondary
+					--button-padding="0.4rem 0.6rem"
+				>
+					Back to puzzle
+				</ButtonLink>
 			{/if}
 		</div>
-		<div class="row-actions">
-			<ButtonLink
-				href={puzzle.canonicalUrl}
-				target="_blank"
-				rel="noopener noreferrer"
-				onclick={() => onPlayClick(puzzle.id)}
-				primary
-			>
-				Play
-			</ButtonLink>
-			{#if puzzle.archive.enabled && puzzle.archive.url}
-				<ButtonLink
-					href={puzzle.archive.url}
-					target="_blank"
-					rel="noopener noreferrer"
-					secondary
-				>
-					Archive
-				</ButtonLink>
-			{/if}
-			{#if puzzle.unlimited.enabled && puzzle.unlimited.url}
-				<ButtonLink
-					href={puzzle.unlimited.url}
-					target="_blank"
-					rel="noopener noreferrer"
-					secondary
-				>
-					Unlimited
-				</ButtonLink>
-			{/if}
-			{#if !isPlayed}
-				<Button secondary onclick={() => onMarkPlayed(puzzle.id, 'won')}>Won</Button>
-				<Button secondary onclick={() => onMarkPlayed(puzzle.id, 'lost')}>Lost</Button>
-				<Button secondary onclick={() => onMarkPlayed(puzzle.id, 'unknown')}>Played</Button>
-			{/if}
-			<Button secondary onclick={() => startEditingSeed(puzzle.id)}>
-				{seed ? `Base: ${seed.value}` : 'Set streak'}
-			</Button>
-			<Button onclick={() => onRemove(puzzle.id)}>Remove</Button>
+		<div class="row-actions-secondary">
+			<MiniButton danger onclick={() => onRemove(puzzle.id)}>Remove</MiniButton>
 		</div>
 		{#if editingSeedFor === puzzle.id}
 			<div class="seed-form">
-				<label class="seed-label">
-					Streak before this app:
-					<input
-						class="seed-input"
-						type="number"
-						min="1"
-						bind:value={seedInputValue}
-						onkeydown={(e) => e.key === 'Enter' && saveSeed(puzzle.id)}
-					/>
-				</label>
-				<Button primary onclick={() => saveSeed(puzzle.id)}>Save</Button>
-				<Button onclick={() => (editingSeedFor = null)}>Cancel</Button>
+				<span class="seed-label">Streak before this app:</span>
+				<Input
+					type="number"
+					min="1"
+					--input-width="6rem"
+					bind:value={seedInputValue}
+					onkeydown={(e) => e.key === 'Enter' && saveSeed(puzzle.id)}
+				/>
+				<MiniButton primary onclick={() => saveSeed(puzzle.id)}>Save</MiniButton>
+				<MiniButton onclick={() => (editingSeedFor = null)}>Cancel</MiniButton>
 			</div>
 		{/if}
 	</li>
@@ -252,19 +250,45 @@
 	.row-info {
 		display: flex;
 		align-items: center;
+		justify-content: space-between;
 		gap: var(--space-lg);
 		flex: 1;
 		min-width: 8rem;
+		flex-wrap: wrap;
+	}
+
+	.row-main {
+		display: flex;
+		align-items: center;
+		gap: var(--space-md);
+		flex-wrap: wrap;
 	}
 
 	.row-title {
 		font-weight: var(--bold);
 	}
 
-	.row-actions {
+	.row-actions-primary {
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-md);
+		align-items: center;
+	}
+
+	.row-actions-secondary {
+		display: flex;
+		align-items: center;
+	}
+
+	.streak-controls {
+		display: flex;
+		align-items: center;
+		gap: var(--space-md);
+	}
+
+	.streak-label {
+		font-size: 0.8em;
+		color: var(--secondary-fg, var(--fg));
 	}
 
 	.seed-form {
@@ -278,20 +302,7 @@
 	}
 
 	.seed-label {
-		display: flex;
-		align-items: center;
-		gap: var(--space-md);
 		font-size: 0.875em;
-	}
-
-	.seed-input {
-		width: 5rem;
-		padding: var(--space-md) var(--space-lg);
-		border: var(--border-width, 1px) var(--border-style, solid) var(--border-color);
-		border-radius: var(--border-radius);
-		font-size: inherit;
-		background: var(--bg);
-		color: var(--fg);
 	}
 
 	.streak-badge {
@@ -304,5 +315,11 @@
 		border: var(--border-width, 1px) var(--border-style, solid)
 			color-mix(in srgb, var(--warning-bg) 40%, transparent);
 		white-space: nowrap;
+	}
+
+	.streak-badge.zero-streak {
+		background: color-mix(in srgb, var(--secondary-bg, var(--bg)) 50%, var(--bg));
+		color: var(--secondary-fg, var(--fg));
+		border-color: color-mix(in srgb, var(--border-color) 70%, transparent);
 	}
 </style>

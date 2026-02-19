@@ -74,9 +74,14 @@
 
 	const noPlays: PlaysMap = {};
 
+	const visitedVsUnplayed: PlaysMap = {
+		wordle: { [today]: { progress: 'visited' } }
+	};
+
 	const somePlays: PlaysMap = {
 		wordle: { [today]: { progress: 'played', outcome: 'won' } },
-		worldle: { [today]: { progress: 'played', outcome: 'lost' } }
+		worldle: { [today]: { progress: 'played', outcome: 'lost' } },
+		nerdle: { [today]: { progress: 'visited' } }
 	};
 
 	const allPlays: PlaysMap = {
@@ -131,6 +136,8 @@
 <ContainBase />
 
 <Story name="Nothing played yet" />
+
+<Story name="Play clicked vs not started" args={{ plays: visitedVsUnplayed }} />
 
 <Story name="Some done" args={{ plays: somePlays }} />
 
