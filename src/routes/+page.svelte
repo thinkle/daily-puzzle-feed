@@ -24,7 +24,12 @@
 		savePuzzleSubmission,
 		updatePendingPuzzleSubmission
 	} from '$lib/data/puzzle-submissions';
-	import { loadUserFeed, savePlayEntry, saveUserFeedPuzzleIds } from '$lib/data/user-feed';
+	import {
+		loadUserFeed,
+		savePlayEntry,
+		saveStreakSeed,
+		saveUserFeedPuzzleIds
+	} from '$lib/data/user-feed';
 	import { isFirebaseConfigured } from '$lib/firebase/client';
 	import {
 		arePuzzleUrlsEquivalent,
@@ -36,7 +41,9 @@
 		getTodayDateString,
 		type PlaysMap,
 		type PuzzleOutcome,
-		type PuzzlePlayEntry
+		type PuzzlePlayEntry,
+		type PuzzleStreakSeed,
+		type StreakSeedsMap
 	} from '$lib/model/user-data';
 
 	const ADMIN_EMAILS = ['tmhinkle@gmail.com', 'thinkle@innovationcharter.org'];
@@ -50,6 +57,7 @@
 	let catalogPuzzles = $state<PuzzleDefinition[]>([]);
 	let feedPuzzleIds = $state<string[]>([]);
 	let plays = $state<PlaysMap>({});
+	let streakSeeds = $state<StreakSeedsMap>({});
 	let pendingSubmissions = $state<PuzzleSubmission[]>([]);
 
 	const isCurrentUserAdmin = $derived.by(() => {
@@ -76,6 +84,7 @@
 			catalogPuzzles = [];
 			feedPuzzleIds = [];
 			plays = {};
+			streakSeeds = {};
 			pendingSubmissions = [];
 			dataError = '';
 			return;
@@ -99,12 +108,13 @@
 			const uid = getCurrentUid();
 			const [approved, userData] = await Promise.all([
 				listApprovedPuzzles(),
-				uid ? loadUserFeed(uid) : Promise.resolve({ feedPuzzleIds: [], plays: {} })
+				uid ? loadUserFeed(uid) : Promise.resolve({ feedPuzzleIds: [], plays: {}, streakSeeds: {} })
 			]);
 
 			catalogPuzzles = approved;
 			feedPuzzleIds = userData.feedPuzzleIds;
 			plays = userData.plays;
+			streakSeeds = userData.streakSeeds ?? {};
 
 			if (isCurrentUserAdmin) {
 				pendingSubmissions = await listPendingPuzzleSubmissions();
@@ -228,6 +238,19 @@
 			await savePlayEntry(uid, puzzleId, today, entry);
 		} catch (error) {
 			dataError = error instanceof Error ? error.message : 'Could not save play state.';
+		}
+	}
+
+	async function handleSetStreakSeed(puzzleId: string, seed: PuzzleStreakSeed) {
+		const uid = getCurrentUid();
+		if (!uid) return;
+
+		streakSeeds = { ...streakSeeds, [puzzleId]: seed };
+
+		try {
+			await saveStreakSeed(uid, puzzleId, seed);
+		} catch (error) {
+			dataError = error instanceof Error ? error.message : 'Could not save streak seed.';
 		}
 	}
 
@@ -478,9 +501,11 @@
 			<MyFeedPanel
 				{feedPuzzles}
 				{plays}
+				{streakSeeds}
 				onPlayClick={handlePlayClick}
 				onMarkPlayed={handleMarkPlayed}
 				onRemove={removePuzzleFromFeed}
+				onSetStreakSeed={handleSetStreakSeed}
 			/>
 		{:else if activeTab === 'add'}
 			<PuzzleCatalogPicker

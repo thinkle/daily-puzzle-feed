@@ -1,5 +1,11 @@
 import { getFirebaseDb, isFirebaseConfigured } from '$lib/firebase/client';
-import type { PuzzlePlayEntry, PlaysMap, UserFeedData } from '$lib/model/user-data';
+import type {
+	PuzzlePlayEntry,
+	PuzzleStreakSeed,
+	PlaysMap,
+	StreakSeedsMap,
+	UserFeedData
+} from '$lib/model/user-data';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 function getUserDocRef(uid: string) {
@@ -24,7 +30,10 @@ export async function loadUserFeed(uid: string): Promise<UserFeedData> {
 			feedPuzzleIds: Array.isArray(data.feedPuzzleIds) ? (data.feedPuzzleIds as string[]) : [],
 			plays: (typeof data.plays === 'object' && data.plays !== null
 				? data.plays
-				: {}) as PlaysMap
+				: {}) as PlaysMap,
+			streakSeeds: (typeof data.streakSeeds === 'object' && data.streakSeeds !== null
+				? data.streakSeeds
+				: {}) as StreakSeedsMap
 		};
 	} catch {
 		return empty;
@@ -37,6 +46,32 @@ export async function saveUserFeedPuzzleIds(uid: string, feedPuzzleIds: string[]
 	}
 
 	await setDoc(getUserDocRef(uid), { feedPuzzleIds }, { merge: true });
+}
+
+export async function saveStreakSeed(
+	uid: string,
+	puzzleId: string,
+	seed: PuzzleStreakSeed
+): Promise<void> {
+	if (!isFirebaseConfigured) {
+		return;
+	}
+
+	const ref = getUserDocRef(uid);
+	const snap = await getDoc(ref);
+
+	if (!snap.exists()) {
+		await setDoc(ref, {
+			feedPuzzleIds: [],
+			plays: {},
+			streakSeeds: { [puzzleId]: seed }
+		});
+		return;
+	}
+
+	await updateDoc(ref, {
+		[`streakSeeds.${puzzleId}`]: seed
+	});
 }
 
 export async function savePlayEntry(
