@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { Accordion, Button, ButtonLink, GridLayout } from 'contain-css-svelte';
-	import PuzzleCard from './PuzzleCard.svelte';
+	import { Accordion, Button, ButtonLink, Tag } from 'contain-css-svelte';
 	import type { PuzzleDefinition } from '$lib/model/puzzle';
 	import { getTodayDateString, type PlaysMap, type PuzzleOutcome } from '$lib/model/user-data';
 
@@ -27,15 +26,32 @@
 	);
 </script>
 
-{#snippet puzzleCardContent(puzzle: PuzzleDefinition)}
+{#snippet puzzleRow(puzzle: PuzzleDefinition)}
 	{@const todayPlay = getTodayPlayEntry(puzzle.id)}
-	<PuzzleCard {puzzle}>
-		{#snippet actions()}
+	{@const isVisited = todayPlay?.progress === 'visited'}
+	{@const isPlayed = todayPlay?.progress === 'played'}
+	<li class="puzzle-row" class:visited={isVisited} class:played={isPlayed}>
+		<div class="row-info">
+			<span class="row-title">{puzzle.title}</span>
+			{#if isPlayed}
+				{#if todayPlay.outcome === 'won'}
+					<Tag success>Won</Tag>
+				{:else if todayPlay.outcome === 'lost'}
+					<Tag danger>Lost</Tag>
+				{:else}
+					<Tag secondary>Played</Tag>
+				{/if}
+			{:else if isVisited}
+				<Tag info>In progress</Tag>
+			{/if}
+		</div>
+		<div class="row-actions">
 			<ButtonLink
 				href={puzzle.canonicalUrl}
 				target="_blank"
 				rel="noopener noreferrer"
 				onclick={() => onPlayClick(puzzle.id)}
+				primary
 			>
 				Play
 			</ButtonLink>
@@ -59,24 +75,14 @@
 					Unlimited
 				</ButtonLink>
 			{/if}
-			{#if todayPlay?.progress === 'played'}
-				<Button disabled>
-					{todayPlay.outcome === 'won'
-						? 'Won'
-						: todayPlay.outcome === 'lost'
-							? 'Lost'
-							: 'Played'}
-				</Button>
-			{:else}
+			{#if !isPlayed}
 				<Button secondary onclick={() => onMarkPlayed(puzzle.id, 'won')}>Won</Button>
 				<Button secondary onclick={() => onMarkPlayed(puzzle.id, 'lost')}>Lost</Button>
-				<Button secondary onclick={() => onMarkPlayed(puzzle.id, 'unknown')}>
-					Played
-				</Button>
+				<Button secondary onclick={() => onMarkPlayed(puzzle.id, 'unknown')}>Played</Button>
 			{/if}
 			<Button onclick={() => onRemove(puzzle.id)}>Remove</Button>
-		{/snippet}
-	</PuzzleCard>
+		</div>
+	</li>
 {/snippet}
 
 <section class="my-feed">
@@ -92,16 +98,11 @@
 		<p>No puzzles in your feed yet. Add some from the "Add Puzzle" tab!</p>
 	{:else}
 		{#if pendingPuzzles.length > 0}
-			<GridLayout
-				--item-width="var(--card-width)"
-				--gap="0.75rem"
-				--grid-justify-content="start"
-				--grid-place-content="start"
-			>
+			<ul class="puzzle-list">
 				{#each pendingPuzzles as puzzle (puzzle.id)}
-					{@render puzzleCardContent(puzzle)}
+					{@render puzzleRow(puzzle)}
 				{/each}
-			</GridLayout>
+			</ul>
 		{:else}
 			<p class="all-done">All done for today!</p>
 		{/if}
@@ -109,16 +110,11 @@
 			<Accordion>
 				<details open={pendingPuzzles.length === 0}>
 					<summary>Done today ({donePuzzles.length})</summary>
-					<GridLayout
-						--item-width="var(--card-width)"
-						--gap="0.75rem"
-						--grid-justify-content="start"
-						--grid-place-content="start"
-					>
+					<ul class="puzzle-list">
 						{#each donePuzzles as puzzle (puzzle.id)}
-							{@render puzzleCardContent(puzzle)}
+							{@render puzzleRow(puzzle)}
 						{/each}
-					</GridLayout>
+					</ul>
 				</details>
 			</Accordion>
 		{/if}
@@ -146,5 +142,53 @@
 	.progress-text {
 		color: var(--secondary-fg, var(--fg));
 		font-size: 0.9em;
+	}
+
+	.puzzle-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		border: 1px solid var(--border-color);
+		border-radius: var(--border-radius, 8px);
+		overflow: hidden;
+	}
+
+	.puzzle-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.6rem 0.75rem;
+		flex-wrap: wrap;
+		border-bottom: 1px solid var(--border-color);
+	}
+
+	.puzzle-row:last-child {
+		border-bottom: none;
+	}
+
+	.puzzle-row.visited {
+		background: color-mix(in srgb, var(--info-bg, #03a9f4) 8%, transparent);
+	}
+
+	.puzzle-row.played {
+		opacity: 0.75;
+	}
+
+	.row-info {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex: 1;
+		min-width: 8rem;
+	}
+
+	.row-title {
+		font-weight: 600;
+	}
+
+	.row-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
 	}
 </style>
