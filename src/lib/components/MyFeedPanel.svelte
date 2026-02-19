@@ -5,20 +5,27 @@
 		getTodayDateString,
 		calculateStreak,
 		type PlaysMap,
-		type PuzzleOutcome
+		type PuzzleOutcome,
+		type PuzzleStreakSeed,
+		type StreakSeedsMap
 	} from '$lib/model/user-data';
 
 	type Props = {
 		feedPuzzles: PuzzleDefinition[];
 		plays: PlaysMap;
+		streakSeeds: StreakSeedsMap;
 		onPlayClick: (puzzleId: string) => void;
 		onMarkPlayed: (puzzleId: string, outcome: PuzzleOutcome) => void;
 		onRemove: (puzzleId: string) => void;
+		onSetStreakSeed: (puzzleId: string, seed: PuzzleStreakSeed) => void;
 	};
 
-	let { feedPuzzles, plays, onPlayClick, onMarkPlayed, onRemove }: Props = $props();
+	let { feedPuzzles, plays, streakSeeds, onPlayClick, onMarkPlayed, onRemove, onSetStreakSeed }: Props =
+		$props();
 
 	let sortByStreak = $state(false);
+	let editingSeedFor = $state<string | null>(null);
+	let seedInputValue = $state(0);
 
 	function getTodayPlayEntry(puzzleId: string) {
 		const today = getTodayDateString();
@@ -26,7 +33,19 @@
 	}
 
 	function getStreak(puzzleId: string): number {
-		return calculateStreak(plays[puzzleId] ?? {});
+		return calculateStreak(plays[puzzleId] ?? {}, streakSeeds[puzzleId]);
+	}
+
+	function startEditingSeed(puzzleId: string) {
+		editingSeedFor = puzzleId;
+		seedInputValue = streakSeeds[puzzleId]?.value ?? 0;
+	}
+
+	function saveSeed(puzzleId: string) {
+		if (seedInputValue > 0) {
+			onSetStreakSeed(puzzleId, { value: seedInputValue, date: getTodayDateString() });
+		}
+		editingSeedFor = null;
 	}
 
 	const pendingPuzzles = $derived(
@@ -51,6 +70,7 @@
 	{@const isVisited = todayPlay?.progress === 'visited'}
 	{@const isPlayed = todayPlay?.progress === 'played'}
 	{@const streak = getStreak(puzzle.id)}
+	{@const seed = streakSeeds[puzzle.id]}
 	<li class="puzzle-row" class:visited={isVisited} class:played={isPlayed}>
 		<div class="row-info">
 			<span class="row-title">{puzzle.title}</span>
@@ -104,8 +124,27 @@
 				<Button secondary onclick={() => onMarkPlayed(puzzle.id, 'lost')}>Lost</Button>
 				<Button secondary onclick={() => onMarkPlayed(puzzle.id, 'unknown')}>Played</Button>
 			{/if}
+			<Button secondary onclick={() => startEditingSeed(puzzle.id)}>
+				{seed ? `Base: ${seed.value}` : 'Set streak'}
+			</Button>
 			<Button onclick={() => onRemove(puzzle.id)}>Remove</Button>
 		</div>
+		{#if editingSeedFor === puzzle.id}
+			<div class="seed-form">
+				<label class="seed-label">
+					Streak before this app:
+					<input
+						class="seed-input"
+						type="number"
+						min="1"
+						bind:value={seedInputValue}
+						onkeydown={(e) => e.key === 'Enter' && saveSeed(puzzle.id)}
+					/>
+				</label>
+				<Button primary onclick={() => saveSeed(puzzle.id)}>Save</Button>
+				<Button onclick={() => (editingSeedFor = null)}>Cancel</Button>
+			</div>
+		{/if}
 	</li>
 {/snippet}
 
@@ -219,6 +258,31 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.3rem;
+	}
+
+	.seed-form {
+		flex: 1 0 100%;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding-top: 0.4rem;
+		border-top: 1px solid var(--border-color);
+		flex-wrap: wrap;
+	}
+
+	.seed-label {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 0.875em;
+	}
+
+	.seed-input {
+		width: 5rem;
+		padding: 0.2em 0.4em;
+		border: 1px solid var(--border-color);
+		border-radius: var(--border-radius, 4px);
+		font-size: inherit;
 	}
 
 	.streak-badge {
