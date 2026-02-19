@@ -1,22 +1,83 @@
 :root {
-	--bg: #0f1418;
-	--fg: #e8edf2;
-	--primary-bg: #1f7ae0;
-	--primary-fg: #ffffff;
-	--secondary-bg: #1a232c;
-	--secondary-fg: #e8edf2;
-	--border-color: #304354;
+	/* Marquee board palette */
+	--bg: #16120f;
+	--fg: #f7edd8;
+	--primary-bg: #d89a2f;
+	--primary-fg: #2f220f;
+	--secondary-bg: #271c14;
+	--secondary-fg: #f4e5c7;
+	--inactive-bg: #3a2d22;
+	--inactive-fg: #cdb893;
+
+	/* Semantic tones */
+	--success-bg: #537e3a;
+	--success-fg: #f5f1e8;
+	--danger-bg: #b24737;
+	--danger-fg: #fff2ef;
+	--info-bg: #3f7993;
+	--info-fg: #edf6fb;
+	--warning-bg: #cf8f26;
+	--warning-fg: #2f220f;
+
+	/* Borders, spacing, and affordance shape */
+	--border-color: #4d3a2b;
+	--border-radius: 0.6rem;
+	--padding: 0.42rem 0.72rem;
+	--gap: 0.85rem;
+	--space: 0.42rem;
+	--focus-color: #ffd36b;
+	--focus-shadow-color: color-mix(in srgb, #ffd36b 45%, transparent);
+	--shadow-color: color-mix(in srgb, #000000 70%, #6d4b1a 30%);
+
+	/* Control polish */
+	--button-border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent);
+	--button-border-radius: 0.62rem;
+	--button-padding: 0.42rem 0.82rem;
+	--button-font-weight: 620;
+	--button-shadow-distance: 1px;
+	--button-shadow-blur: 0;
+	--button-hover-filter: brightness(1.08) saturate(1.03);
+	--button-active-filter: brightness(0.94);
+	--button-active-transform: translateY(1px);
+
+	--input-bg: #120e0a;
+	--input-fg: var(--fg);
+	--input-border: 1px solid color-mix(in srgb, var(--fg) 22%, transparent);
+	--input-border-radius: 0.45rem;
+	--input-padding: 0.4rem 0.58rem;
+
+	/* Tile defaults */
 	--tile-width: 18rem;
 	--tile-height: 24rem;
-	--tile-checkbox-bg: #27415b;
-	--tile-checkbox-fg: #e8edf2;
+	--tile-bg: #19130f;
+	--tile-fg: var(--fg);
+	--tile-border: 1px solid color-mix(in srgb, var(--primary-bg) 38%, var(--border-color));
 	--tile-checkbox-checked-bg: var(--primary-bg);
 	--tile-checkbox-checked-fg: var(--primary-fg);
+	--tile-checkbox-bg: color-mix(in srgb, var(--secondary-bg) 76%, #0e0b09);
+	--tile-checkbox-fg: var(--fg);
 
 	/* Typography */
 	--heading-font-family: 'Daily Special';
 	--ui-font-family: 'Output Sans 2', sans-serif;
 	--font-family: 'Output Sans 2', sans-serif;
+}
+
+body {
+	min-height: 100vh;
+	background:
+		radial-gradient(
+			130% 72% at 50% -10%,
+			color-mix(in srgb, var(--primary-bg) 18%, transparent),
+			transparent 62%
+		),
+		repeating-linear-gradient(
+			to bottom,
+			color-mix(in srgb, var(--fg) 7%, transparent) 0 1px,
+			transparent 1px 2.1rem
+		),
+		var(--bg);
+	color: var(--fg);
 }
 
 h1,
@@ -26,4 +87,18 @@ h4,
 h5,
 h6 {
 	font-family: var(--heading-font-family);
+}
+
+h1 {
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
+@media (max-width: 48rem) {
+	:root {
+		--gap: 0.7rem;
+		--button-padding: 0.36rem 0.66rem;
+		--tile-width: min(100%, 16rem);
+		--tile-height: 21.5rem;
+	}
 }
