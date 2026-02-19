@@ -20,8 +20,15 @@
 		onSetStreakSeed: (puzzleId: string, seed: PuzzleStreakSeed) => void;
 	};
 
-	let { feedPuzzles, plays, streakSeeds, onPlayClick, onMarkPlayed, onRemove, onSetStreakSeed }: Props =
-		$props();
+	let {
+		feedPuzzles,
+		plays,
+		streakSeeds = {},
+		onPlayClick,
+		onMarkPlayed,
+		onRemove,
+		onSetStreakSeed = () => {}
+	}: Props = $props();
 
 	let sortByStreak = $state(false);
 	let editingSeedFor = $state<string | null>(null);
