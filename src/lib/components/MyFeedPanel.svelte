@@ -197,13 +197,13 @@
 
 	.my-feed {
 		display: grid;
-		gap: 0.75rem;
+		gap: var(--gap);
 	}
 
 	.feed-header {
 		display: flex;
 		align-items: baseline;
-		gap: 1rem;
+		gap: var(--gap);
 		flex-wrap: wrap;
 	}
 
@@ -216,18 +216,18 @@
 		list-style: none;
 		margin: 0;
 		padding: 0;
-		border: 1px solid var(--border-color);
-		border-radius: var(--border-radius, 8px);
+		border: var(--border-width, 1px) var(--border-style, solid) var(--border-color);
+		border-radius: var(--border-radius);
 		overflow: hidden;
 	}
 
 	.puzzle-row {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		padding: 0.6rem 0.75rem;
+		gap: var(--space-lg);
+		padding: var(--space-lg) var(--padding);
 		flex-wrap: wrap;
-		border-bottom: 1px solid var(--border-color);
+		border-bottom: var(--border-width, 1px) var(--border-style, solid) var(--border-color);
 	}
 
 	.puzzle-row:last-child {
@@ -235,7 +235,7 @@
 	}
 
 	.puzzle-row.visited {
-		background: color-mix(in srgb, var(--info-bg, #03a9f4) 8%, transparent);
+		background: color-mix(in srgb, var(--info-bg) 10%, var(--bg));
 	}
 
 	.puzzle-row.played {
@@ -245,54 +245,57 @@
 	.row-info {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-lg);
 		flex: 1;
 		min-width: 8rem;
 	}
 
 	.row-title {
-		font-weight: 600;
+		font-weight: var(--bold);
 	}
 
 	.row-actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.3rem;
+		gap: var(--space-md);
 	}
 
 	.seed-form {
 		flex: 1 0 100%;
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding-top: 0.4rem;
-		border-top: 1px solid var(--border-color);
+		gap: var(--space-lg);
+		padding-top: var(--space-lg);
+		border-top: var(--border-width, 1px) var(--border-style, solid) var(--border-color);
 		flex-wrap: wrap;
 	}
 
 	.seed-label {
 		display: flex;
 		align-items: center;
-		gap: 0.4rem;
+		gap: var(--space-md);
 		font-size: 0.875em;
 	}
 
 	.seed-input {
 		width: 5rem;
-		padding: 0.2em 0.4em;
-		border: 1px solid var(--border-color);
-		border-radius: var(--border-radius, 4px);
+		padding: var(--space-md) var(--space-lg);
+		border: var(--border-width, 1px) var(--border-style, solid) var(--border-color);
+		border-radius: var(--border-radius);
 		font-size: inherit;
+		background: var(--bg);
+		color: var(--fg);
 	}
 
 	.streak-badge {
-		font-size: 0.72em;
-		font-weight: 700;
+		font-size: 0.75em;
+		font-weight: var(--bold);
 		padding: 0.15em 0.45em;
 		border-radius: 999px;
-		background: color-mix(in srgb, var(--warning-bg, #ff9800) 18%, transparent);
-		color: var(--warning-fg, #b45309);
-		border: 1px solid color-mix(in srgb, var(--warning-bg, #ff9800) 35%, transparent);
+		background: color-mix(in srgb, var(--warning-bg) 15%, var(--bg));
+		color: var(--warning-bg);
+		border: var(--border-width, 1px) var(--border-style, solid)
+			color-mix(in srgb, var(--warning-bg) 40%, transparent);
 		white-space: nowrap;
 	}
 </style>
