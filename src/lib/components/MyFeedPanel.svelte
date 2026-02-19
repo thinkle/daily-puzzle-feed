@@ -82,8 +82,10 @@
 <section class="my-feed">
 	<div class="feed-header">
 		<h2>My Puzzle Feed</h2>
-		{#if feedPuzzles.length > 0}
-			<span class="progress-text">Done {donePuzzles.length} of {feedPuzzles.length} today</span>
+		{#if donePuzzles.length > 0}
+			<span class="progress-text">{donePuzzles.length} of {feedPuzzles.length} done today</span>
+		{:else if feedPuzzles.length > 0}
+			<span class="progress-text">{feedPuzzles.length} puzzle{feedPuzzles.length === 1 ? '' : 's'} to do</span>
 		{/if}
 	</div>
 	{#if feedPuzzles.length === 0}
@@ -105,7 +107,7 @@
 		{/if}
 		{#if donePuzzles.length > 0}
 			<Accordion>
-				<details>
+				<details open={pendingPuzzles.length === 0}>
 					<summary>Done today ({donePuzzles.length})</summary>
 					<GridLayout
 						--item-width="var(--card-width)"
