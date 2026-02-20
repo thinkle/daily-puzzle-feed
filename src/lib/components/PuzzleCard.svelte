@@ -35,7 +35,11 @@
 	}
 </script>
 
-<Card --card-footer-padding="0.5rem" --card-header-height="auto">
+<Card
+	--card-footer-padding="0.5rem"
+	--card-header-height="auto"
+	--card-width="var(--card-width-small)"
+>
 	{#snippet header()}
 		<h3>{puzzle.title}</h3>
 	{/snippet}

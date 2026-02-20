@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Accordion, Button, ButtonLink, Input, Tag } from 'contain-css-svelte';
+	import { getPuzzleDisplayImageUrl } from '$lib/model/puzzle';
 	import type { PuzzleDefinition } from '$lib/model/puzzle';
 	import {
 		getTodayDateString,
@@ -81,9 +82,13 @@
 	{@const streak = getStreak(puzzle.id)}
 	{@const seed = streakSeeds[puzzle.id]}
 	{@const hasPlayableUrl = Boolean(puzzle.canonicalUrl)}
+	{@const imageUrl = getPuzzleDisplayImageUrl(puzzle) ?? puzzle.image?.faviconUrl}
 	<li class="puzzle-row" class:visited={isVisited} class:played={isPlayed}>
 		<div class="row-info">
 			<div class="row-main">
+				{#if imageUrl}
+					<img class="row-thumb" src={imageUrl} alt="" />
+				{/if}
 				<span class="row-title">{puzzle.title}</span>
 				{#if isPlayed}
 					{#if todayPlay.outcome === 'won'}
@@ -272,6 +277,7 @@
 		padding: var(--space-lg) var(--padding);
 		flex-wrap: wrap;
 		border-bottom: var(--border-width, 1px) var(--border-style, solid) var(--border-color);
+		--button-margin: 0;
 	}
 
 	.puzzle-row:last-child {
@@ -301,6 +307,14 @@
 		align-items: center;
 		gap: var(--space-md);
 		flex-wrap: wrap;
+	}
+
+	.row-thumb {
+		width: 2rem;
+		height: 2rem;
+		border-radius: var(--border-radius);
+		object-fit: cover;
+		flex-shrink: 0;
 	}
 
 	.row-title {
@@ -343,6 +357,29 @@
 
 	.seed-label {
 		font-size: 0.875em;
+	}
+
+	@media (max-width: 700px) {
+		.puzzle-row {
+			gap: var(--space);
+			padding: var(--space-md) var(--space-md);
+		}
+
+		.row-info {
+			gap: var(--space);
+		}
+
+		.row-main {
+			gap: var(--space);
+		}
+
+		.feed-header {
+			gap: var(--space-md);
+		}
+
+		.streak-controls {
+			gap: var(--space);
+		}
 	}
 
 </style>

@@ -63,7 +63,8 @@ function mapFirestorePuzzle(docId: string, data: DocumentData): PuzzleDefinition
 				}
 			: undefined,
 		active: data.active !== false,
-		source: 'canonical'
+		source: 'canonical',
+		ranking: typeof data.ranking === 'number' ? data.ranking : 0
 	};
 }
 
@@ -74,6 +75,7 @@ export type UpdateApprovedPuzzleArgs = {
 	description?: string;
 	tags: PuzzleTag[];
 	siteName?: string;
+	ranking?: number;
 };
 
 export async function updateApprovedPuzzle({
@@ -82,7 +84,8 @@ export async function updateApprovedPuzzle({
 	canonicalUrl,
 	description,
 	tags,
-	siteName
+	siteName,
+	ranking
 }: UpdateApprovedPuzzleArgs): Promise<PuzzleDefinition | null> {
 	if (!isFirebaseConfigured) {
 		return null;
@@ -105,7 +108,8 @@ export async function updateApprovedPuzzle({
 		canonicalUrlNormalized: normalizedUrl,
 		description: description?.trim() || null,
 		tags: normalizedTags,
-		siteName: siteName?.trim() || null
+		siteName: siteName?.trim() || null,
+		ranking: typeof ranking === 'number' ? ranking : 0
 	});
 
 	const updatedSnap = await getDoc(puzzleRef);

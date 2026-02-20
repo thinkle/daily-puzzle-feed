@@ -108,5 +108,6 @@ h1 {
 	:root {
 		--tab-bar-gap: 2px;
 		--bar-height: auto; /* Let the content dictate height on mobile, but keep it tight */
+		--tab-bar-height: 2em;
 	}
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button } from 'contain-css-svelte';
+	import { MiniButton } from 'contain-css-svelte';
 
 	type Props = {
 		isBusy?: boolean;
@@ -19,20 +19,20 @@
 </script>
 
 <div class="auth-status-inline">
-	<p>Signed in as <strong>{accountLabel}</strong>.</p>
-	<Button onclick={onSignOut} disabled={isBusy}>Sign Out</Button>
+	<span class="account-label">{accountLabel}</span>
+	<MiniButton onclick={onSignOut} disabled={isBusy} aria-label="Sign out"><svg width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor"><path d="M2 1h7v2H4v10h5v2H2V1zm8 3l5 4-5 4V9H6V7h4V4z"/></svg></MiniButton>
 </div>
 
 <style>
 	.auth-status-inline {
 		align-items: center;
 		display: flex;
-		flex-wrap: wrap;
-		gap: 0.75rem;
-		justify-content: flex-end;
+		gap: var(--space-md);
+		--button-margin: 0;
 	}
 
-	p {
-		margin: 0;
+	.account-label {
+		font-size: 0.85em;
+		opacity: 0.85;
 	}
 </style>
