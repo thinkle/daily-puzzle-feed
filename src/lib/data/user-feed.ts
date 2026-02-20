@@ -6,7 +6,7 @@ import type {
 	StreakSeedsMap,
 	UserFeedData
 } from '$lib/model/user-data';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 function getUserDocRef(uid: string) {
 	return doc(getFirebaseDb(), 'users', uid);
@@ -98,4 +98,69 @@ export async function savePlayEntry(
 	await updateDoc(ref, {
 		[`plays.${puzzleId}.${date}`]: entry
 	});
+}
+
+export async function migrateUserFeedPuzzleIds(
+	uid: string,
+	puzzleIdMap: Record<string, string>
+): Promise<void> {
+	if (!isFirebaseConfigured) {
+		return;
+	}
+
+	const mappings = Object.entries(puzzleIdMap).filter(
+		([fromId, toId]) => fromId.trim() && toId.trim() && fromId !== toId
+	);
+	if (mappings.length === 0) {
+		return;
+	}
+
+	const ref = getUserDocRef(uid);
+	const snap = await getDoc(ref);
+	if (!snap.exists()) {
+		return;
+	}
+
+	const data = snap.data();
+	const currentFeedPuzzleIds = Array.isArray(data.feedPuzzleIds)
+		? (data.feedPuzzleIds as string[])
+		: [];
+	const currentPlays =
+		typeof data.plays === 'object' && data.plays !== null ? (data.plays as PlaysMap) : {};
+	const currentStreakSeeds =
+		typeof data.streakSeeds === 'object' && data.streakSeeds !== null
+			? (data.streakSeeds as StreakSeedsMap)
+			: {};
+
+	const mapRecord = new Map<string, string>(mappings);
+	const nextFeedPuzzleIds: string[] = [];
+	for (const puzzleId of currentFeedPuzzleIds) {
+		const mapped = mapRecord.get(puzzleId) ?? puzzleId;
+		if (!nextFeedPuzzleIds.includes(mapped)) {
+			nextFeedPuzzleIds.push(mapped);
+		}
+	}
+
+	const updates: Record<string, unknown> = {
+		feedPuzzleIds: nextFeedPuzzleIds
+	};
+
+	for (const [fromId, toId] of mappings) {
+		const fromPlays = currentPlays[fromId];
+		if (fromPlays) {
+			const toPlays = currentPlays[toId] ?? {};
+			updates[`plays.${toId}`] = { ...fromPlays, ...toPlays };
+			updates[`plays.${fromId}`] = deleteField();
+		}
+
+		const fromStreak = currentStreakSeeds[fromId];
+		if (fromStreak) {
+			if (!currentStreakSeeds[toId]) {
+				updates[`streakSeeds.${toId}`] = fromStreak;
+			}
+			updates[`streakSeeds.${fromId}`] = deleteField();
+		}
+	}
+
+	await updateDoc(ref, updates);
 }

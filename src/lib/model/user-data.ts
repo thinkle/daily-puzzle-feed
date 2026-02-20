@@ -1,5 +1,5 @@
 export type PuzzleProgress = 'visited' | 'played';
-export type PuzzleOutcome = 'won' | 'lost' | 'unknown';
+export type PuzzleOutcome = 'won' | 'lost' | 'completed' | 'unknown';
 
 export type PuzzlePlayEntry = {
 	progress: PuzzleProgress;

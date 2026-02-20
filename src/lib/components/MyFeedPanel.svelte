@@ -80,6 +80,7 @@
 	{@const isPlayed = todayPlay?.progress === 'played'}
 	{@const streak = getStreak(puzzle.id)}
 	{@const seed = streakSeeds[puzzle.id]}
+	{@const hasPlayableUrl = Boolean(puzzle.canonicalUrl)}
 	<li class="puzzle-row" class:visited={isVisited} class:played={isPlayed}>
 		<div class="row-info">
 			<div class="row-main">
@@ -89,13 +90,18 @@
 						<Tag success>Won</Tag>
 					{:else if todayPlay.outcome === 'lost'}
 						<Tag danger>Lost</Tag>
+					{:else if todayPlay.outcome === 'completed' || todayPlay.outcome === 'unknown'}
+						<Tag info>Completed</Tag>
 					{:else}
-						<Tag>Played</Tag>
+						<Tag info>Completed</Tag>
 					{/if}
 				{:else if isVisited}
 					<Tag info>Awaiting result</Tag>
 				{:else}
 					<Tag>Not started</Tag>
+				{/if}
+				{#if !hasPlayableUrl}
+					<Tag danger>Missing URL</Tag>
 				{/if}
 			</div>
 			<div class="streak-controls">
@@ -117,28 +123,35 @@
 		</div>
 		<div class="row-actions-primary">
 			{#if !isVisited && !isPlayed}
-				<ButtonLink
-					href={puzzle.canonicalUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					onclick={() => onPlayClick(puzzle.id)}
-					primary
-				>
-					Play
-				</ButtonLink>
+				{#if hasPlayableUrl}
+					<ButtonLink
+						href={puzzle.canonicalUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						onclick={() => onPlayClick(puzzle.id)}
+						primary
+					>
+						Play
+					</ButtonLink>
+				{:else}
+					<Button secondary disabled>Unavailable</Button>
+				{/if}
 			{:else if isVisited && !isPlayed}
 				<Button success onclick={() => onMarkPlayed(puzzle.id, 'won')}>Won</Button>
 				<Button danger onclick={() => onMarkPlayed(puzzle.id, 'lost')}>Lost</Button>
-				<ButtonLink
-					href={puzzle.canonicalUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					onclick={() => onPlayClick(puzzle.id)}
-					secondary
-					--button-padding="0.4rem 0.6rem"
-				>
-					Back to puzzle
-				</ButtonLink>
+				<Button info onclick={() => onMarkPlayed(puzzle.id, 'completed')}>Completed</Button>
+				{#if hasPlayableUrl}
+					<ButtonLink
+						href={puzzle.canonicalUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						onclick={() => onPlayClick(puzzle.id)}
+						secondary
+						--button-padding="0.4rem 0.6rem"
+					>
+						Back to puzzle
+					</ButtonLink>
+				{/if}
 			{/if}
 		</div>
 		<div class="row-actions-secondary">

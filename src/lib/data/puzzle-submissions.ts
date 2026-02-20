@@ -1,8 +1,10 @@
 import { getFirebaseDb, isFirebaseConfigured } from '$lib/firebase/client';
 import {
+	createPuzzleIdFromUrl,
 	normalizePuzzleUrl,
 	normalizeTags,
 	type PuzzleDraftInput,
+	type PuzzleDefinition,
 	type PuzzleImageMode,
 	type PuzzleTag,
 	type PuzzleSubmission,
@@ -258,6 +260,60 @@ export async function listPendingPuzzleSubmissions(maxResults = 50): Promise<Puz
 	return [...submissionsById.values()]
 		.sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0))
 		.slice(0, maxResults);
+}
+
+function mapSubmissionToCustomPuzzle(submission: PuzzleSubmission): PuzzleDefinition {
+	const normalizedUrl = normalizePuzzleUrl(submission.canonicalUrl);
+	const id = `custom-${createPuzzleIdFromUrl(normalizedUrl)}`;
+
+	return {
+		id,
+		title: submission.title,
+		canonicalUrl: normalizedUrl,
+		canonicalUrlNormalized: normalizedUrl,
+		description: submission.description,
+		tags: submission.tags,
+		siteName: submission.siteName,
+		image: submission.image,
+		archive: submission.archive,
+		unlimited: submission.unlimited,
+		active: true,
+		source: 'user'
+	};
+}
+
+export async function listUserSubmittedPuzzles(
+	uid: string,
+	maxResults = 250
+): Promise<PuzzleDefinition[]> {
+	if (!isFirebaseConfigured) {
+		return [];
+	}
+
+	try {
+		const snapshots = await getDocs(
+			query(
+				collection(getFirebaseDb(), 'puzzle_submissions'),
+				where('submittedBy.uid', '==', uid),
+				limit(maxResults)
+			)
+		);
+
+		const puzzlesById = new Map<string, PuzzleDefinition>();
+		for (const snapshot of snapshots.docs) {
+			const submission = mapSubmission(snapshot.id, snapshot.data());
+			if (!submission.canonicalUrl) {
+				continue;
+			}
+
+			const puzzle = mapSubmissionToCustomPuzzle(submission);
+			puzzlesById.set(puzzle.id, puzzle);
+		}
+
+		return [...puzzlesById.values()];
+	} catch {
+		return [];
+	}
 }
 
 export async function approvePuzzleSubmission({

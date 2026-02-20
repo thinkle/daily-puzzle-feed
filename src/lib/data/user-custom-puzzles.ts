@@ -1,20 +1,13 @@
 import { getFirebaseDb, isFirebaseConfigured } from '$lib/firebase/client';
-import {
-	normalizePuzzleUrl,
-	normalizeTags,
-	type PuzzleDefinition,
-	type PuzzleImageMode,
-	type PuzzleTag
-} from '$lib/model/puzzle';
+import type { PuzzleDefinition, PuzzleImageMode } from '$lib/model/puzzle';
 import {
 	collection,
 	doc,
 	documentId,
-	getDoc,
 	getDocs,
-	limit,
 	query,
-	updateDoc,
+	serverTimestamp,
+	setDoc,
 	where,
 	type DocumentData
 } from 'firebase/firestore';
@@ -27,7 +20,7 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 	return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : undefined;
 }
 
-function mapFirestorePuzzle(docId: string, data: DocumentData): PuzzleDefinition {
+function mapPuzzleDoc(docId: string, data: DocumentData): PuzzleDefinition {
 	const archive = asRecord(data.archive);
 	const unlimited = asRecord(data.unlimited);
 	const image = asRecord(data.image);
@@ -38,7 +31,7 @@ function mapFirestorePuzzle(docId: string, data: DocumentData): PuzzleDefinition
 		canonicalUrl: asString(data.canonicalUrl) ?? '',
 		canonicalUrlNormalized: asString(data.canonicalUrlNormalized),
 		description: asString(data.description),
-		tags: normalizeTags(data.tags as string[] | undefined),
+		tags: Array.isArray(data.tags) ? (data.tags as PuzzleDefinition['tags']) : [],
 		siteName: asString(data.siteName),
 		archive: {
 			enabled: Boolean(archive?.enabled),
@@ -63,77 +56,61 @@ function mapFirestorePuzzle(docId: string, data: DocumentData): PuzzleDefinition
 				}
 			: undefined,
 		active: data.active !== false,
-		source: 'canonical'
+		source: 'user'
 	};
 }
 
-export type UpdateApprovedPuzzleArgs = {
-	puzzleId: string;
-	title: string;
-	canonicalUrl: string;
-	description?: string;
-	tags: PuzzleTag[];
-	siteName?: string;
-};
-
-export async function updateApprovedPuzzle({
-	puzzleId,
-	title,
-	canonicalUrl,
-	description,
-	tags,
-	siteName
-}: UpdateApprovedPuzzleArgs): Promise<PuzzleDefinition | null> {
+export async function saveUserCustomPuzzle(uid: string, puzzle: PuzzleDefinition): Promise<void> {
 	if (!isFirebaseConfigured) {
-		return null;
+		return;
 	}
 
-	const cleanedTitle = title.trim();
-	if (!cleanedTitle) {
-		throw new Error('Title is required.');
-	}
+	const puzzleRef = doc(getFirebaseDb(), 'users', uid, 'custom_puzzles', puzzle.id);
 
-	const normalizedUrl = normalizePuzzleUrl(canonicalUrl);
-	const normalizedTags = normalizeTags(tags);
-
-	const db = getFirebaseDb();
-	const puzzleRef = doc(db, 'puzzles', puzzleId);
-
-	await updateDoc(puzzleRef, {
-		title: cleanedTitle,
-		canonicalUrl: normalizedUrl,
-		canonicalUrlNormalized: normalizedUrl,
-		description: description?.trim() || null,
-		tags: normalizedTags,
-		siteName: siteName?.trim() || null
-	});
-
-	const updatedSnap = await getDoc(puzzleRef);
-	if (!updatedSnap.exists()) {
-		return null;
-	}
-
-	return mapFirestorePuzzle(updatedSnap.id, updatedSnap.data());
+	await setDoc(
+		puzzleRef,
+		{
+			id: puzzle.id,
+			title: puzzle.title,
+			canonicalUrl: puzzle.canonicalUrl,
+			canonicalUrlNormalized: puzzle.canonicalUrlNormalized ?? null,
+			description: puzzle.description ?? null,
+			tags: puzzle.tags,
+			siteName: puzzle.siteName ?? null,
+			archive: {
+				enabled: puzzle.archive.enabled,
+				url: puzzle.archive.url ?? null,
+				urlTemplate: puzzle.archive.urlTemplate ?? null,
+				notes: puzzle.archive.notes ?? null
+			},
+			unlimited: {
+				enabled: puzzle.unlimited.enabled,
+				url: puzzle.unlimited.url ?? null,
+				urlTemplate: puzzle.unlimited.urlTemplate ?? null,
+				notes: puzzle.unlimited.notes ?? null
+			},
+			image: puzzle.image
+				? {
+						mode: puzzle.image.mode,
+						previewUrl: puzzle.image.previewUrl ?? null,
+						customUrl: puzzle.image.customUrl ?? null,
+						storagePath: puzzle.image.storagePath ?? null,
+						approvedUrl: puzzle.image.approvedUrl ?? null,
+						faviconUrl: puzzle.image.faviconUrl ?? null
+					}
+				: null,
+			active: puzzle.active,
+			source: 'user',
+			updatedAt: serverTimestamp()
+		},
+		{ merge: true }
+	);
 }
 
-export async function listApprovedPuzzles(maxResults = 500): Promise<PuzzleDefinition[]> {
-	if (!isFirebaseConfigured) {
-		return [];
-	}
-
-	try {
-		const snapshots = await getDocs(query(collection(getFirebaseDb(), 'puzzles'), limit(maxResults)));
-
-		return snapshots.docs
-			.map((snapshot) => mapFirestorePuzzle(snapshot.id, snapshot.data()))
-			.filter((puzzle) => puzzle.active)
-			.sort((a, b) => a.title.localeCompare(b.title));
-	} catch {
-		return [];
-	}
-}
-
-export async function listPuzzlesByIds(puzzleIds: string[]): Promise<PuzzleDefinition[]> {
+export async function listUserCustomPuzzlesByIds(
+	uid: string,
+	puzzleIds: string[]
+): Promise<PuzzleDefinition[]> {
 	if (!isFirebaseConfigured) {
 		return [];
 	}
@@ -143,19 +120,16 @@ export async function listPuzzlesByIds(puzzleIds: string[]): Promise<PuzzleDefin
 		return [];
 	}
 
-	const db = getFirebaseDb();
+	const puzzlesRef = collection(getFirebaseDb(), 'users', uid, 'custom_puzzles');
 	const resultsById = new Map<string, PuzzleDefinition>();
 
 	try {
 		const chunkSize = 10;
 		for (let index = 0; index < uniqueIds.length; index += chunkSize) {
 			const chunk = uniqueIds.slice(index, index + chunkSize);
-			const snapshots = await getDocs(
-				query(collection(db, 'puzzles'), where(documentId(), 'in', chunk))
-			);
-
+			const snapshots = await getDocs(query(puzzlesRef, where(documentId(), 'in', chunk)));
 			for (const snapshot of snapshots.docs) {
-				const puzzle = mapFirestorePuzzle(snapshot.id, snapshot.data());
+				const puzzle = mapPuzzleDoc(snapshot.id, snapshot.data());
 				resultsById.set(puzzle.id, puzzle);
 			}
 		}
