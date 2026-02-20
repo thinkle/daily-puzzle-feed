@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { dev } from '$app/environment';
 	import { Page, Bar, Card, TabBar, TabItem } from 'contain-css-svelte';
 	import {
 		authSession,
@@ -15,10 +16,12 @@
 	import MyFeedPanel from '$lib/components/MyFeedPanel.svelte';
 	import PuzzleCatalogPicker from '$lib/components/PuzzleCatalogPicker.svelte';
 	import PuzzleSubmitForm from '$lib/components/PuzzleSubmitForm.svelte';
-	import { listApprovedPuzzles, updateApprovedPuzzle } from '$lib/data/puzzles';
+	import { listApprovedPuzzles, listPuzzlesByIds, updateApprovedPuzzle } from '$lib/data/puzzles';
+	import { listUserCustomPuzzlesByIds, saveUserCustomPuzzle } from '$lib/data/user-custom-puzzles';
 	import { resolvePuzzleUrl } from '$lib/data/puzzle-resolver';
 	import {
 		approvePuzzleSubmission,
+		listUserSubmittedPuzzles,
 		listPendingPuzzleSubmissions,
 		rejectPuzzleSubmission,
 		savePuzzleSubmission,
@@ -26,6 +29,7 @@
 	} from '$lib/data/puzzle-submissions';
 	import {
 		loadUserFeed,
+		migrateUserFeedPuzzleIds,
 		savePlayEntry,
 		saveStreakSeed,
 		saveUserFeedPuzzleIds
@@ -60,6 +64,92 @@
 	let streakSeeds = $state<StreakSeedsMap>({});
 	let pendingSubmissions = $state<PuzzleSubmission[]>([]);
 
+	function logFeedDebug(event: string, payload: Record<string, unknown>) {
+		if (!dev) {
+			return;
+		}
+
+		console.info(`[feed-debug] ${event}`, payload);
+	}
+
+	function fallbackTitleFromPuzzleId(puzzleId: string) {
+		const cleaned = puzzleId
+			.replace(/^canonical-/, '')
+			.replace(/^custom-/, '')
+			.replace(/[-_]+/g, ' ')
+			.trim();
+
+		if (!cleaned) {
+			return 'Unknown Puzzle';
+		}
+
+		return cleaned.replace(/\b\w/g, (match) => match.toUpperCase());
+	}
+
+	function createMissingPuzzleDefinition(puzzleId: string): PuzzleDefinition {
+		return {
+			id: puzzleId,
+			title: fallbackTitleFromPuzzleId(puzzleId),
+			canonicalUrl: '',
+			canonicalUrlNormalized: undefined,
+			description: 'This puzzle is in your feed but has no matching catalog entry.',
+			tags: [],
+			siteName: undefined,
+			archive: { enabled: false },
+			unlimited: { enabled: false },
+			image: undefined,
+			active: true,
+			source: 'user'
+		};
+	}
+
+	function buildLegacyPuzzleIdMap(feedIds: string[], approvedIds: Set<string>) {
+		const map: Record<string, string> = {};
+		for (const feedId of feedIds) {
+			if (!feedId.startsWith('custom-')) {
+				continue;
+			}
+			const canonicalId = `canonical-${feedId.slice('custom-'.length)}`;
+			if (approvedIds.has(canonicalId)) {
+				map[feedId] = canonicalId;
+			}
+		}
+		return map;
+	}
+
+	function applyPuzzleIdMapToFeedIds(feedIds: string[], idMap: Record<string, string>) {
+		const mapped = feedIds.map((id) => idMap[id] ?? id);
+		return mapped.filter((id, index) => mapped.indexOf(id) === index);
+	}
+
+	function applyPuzzleIdMapToPlays(playsMap: PlaysMap, idMap: Record<string, string>) {
+		const next: PlaysMap = { ...playsMap };
+		for (const [fromId, toId] of Object.entries(idMap)) {
+			const fromPlays = next[fromId];
+			if (!fromPlays) {
+				continue;
+			}
+			next[toId] = { ...fromPlays, ...(next[toId] ?? {}) };
+			delete next[fromId];
+		}
+		return next;
+	}
+
+	function applyPuzzleIdMapToStreakSeeds(seeds: StreakSeedsMap, idMap: Record<string, string>) {
+		const next: StreakSeedsMap = { ...seeds };
+		for (const [fromId, toId] of Object.entries(idMap)) {
+			const fromSeed = next[fromId];
+			if (!fromSeed) {
+				continue;
+			}
+			if (!next[toId]) {
+				next[toId] = fromSeed;
+			}
+			delete next[fromId];
+		}
+		return next;
+	}
+
 	const isCurrentUserAdmin = $derived.by(() => {
 		if ($authSession.status !== 'signed_in') {
 			return false;
@@ -69,11 +159,10 @@
 		return Boolean(email && ADMIN_EMAILS.includes(email));
 	});
 
-	const feedPuzzles = $derived.by(() =>
-		feedPuzzleIds
-			.map((id) => catalogPuzzles.find((puzzle) => puzzle.id === id) ?? null)
-			.filter((puzzle): puzzle is PuzzleDefinition => puzzle !== null)
-	);
+	const feedPuzzles = $derived.by(() => {
+		const catalogById = new Map(catalogPuzzles.map((puzzle) => [puzzle.id, puzzle]));
+		return feedPuzzleIds.map((id) => catalogById.get(id) ?? createMissingPuzzleDefinition(id));
+	});
 
 	onMount(() => {
 		return startAuthSessionListener();
@@ -110,11 +199,89 @@
 				listApprovedPuzzles(),
 				uid ? loadUserFeed(uid) : Promise.resolve({ feedPuzzleIds: [], plays: {}, streakSeeds: {} })
 			]);
+			const approvedIds = new Set(approved.map((puzzle) => puzzle.id));
+			const legacyPuzzleIdMap = buildLegacyPuzzleIdMap(userData.feedPuzzleIds, approvedIds);
+			const hasLegacyMappings = Object.keys(legacyPuzzleIdMap).length > 0;
+			let hydratedUserData = userData;
 
-			catalogPuzzles = approved;
-			feedPuzzleIds = userData.feedPuzzleIds;
-			plays = userData.plays;
-			streakSeeds = userData.streakSeeds ?? {};
+			if (uid && hasLegacyMappings) {
+				await migrateUserFeedPuzzleIds(uid, legacyPuzzleIdMap);
+				hydratedUserData = {
+					feedPuzzleIds: applyPuzzleIdMapToFeedIds(userData.feedPuzzleIds, legacyPuzzleIdMap),
+					plays: applyPuzzleIdMapToPlays(userData.plays, legacyPuzzleIdMap),
+					streakSeeds: applyPuzzleIdMapToStreakSeeds(userData.streakSeeds ?? {}, legacyPuzzleIdMap)
+				};
+			}
+
+			const feedIdsMissingFromApproved = hydratedUserData.feedPuzzleIds.filter(
+				(id) => !approvedIds.has(id)
+			);
+			const userCustomFeedPuzzles =
+				uid && feedIdsMissingFromApproved.length > 0
+					? await listUserCustomPuzzlesByIds(uid, feedIdsMissingFromApproved)
+					: [];
+			const userCustomById = new Map(userCustomFeedPuzzles.map((puzzle) => [puzzle.id, puzzle]));
+			let stillMissingAfterUserCustom = feedIdsMissingFromApproved.filter(
+				(id) => !userCustomById.has(id)
+			);
+			let submissionMatchedCount = 0;
+
+			if (uid && stillMissingAfterUserCustom.length > 0) {
+				const submittedPuzzles = await listUserSubmittedPuzzles(uid);
+				const submittedById = new Map(submittedPuzzles.map((puzzle) => [puzzle.id, puzzle]));
+				const backfilled: PuzzleDefinition[] = [];
+
+				for (const missingId of stillMissingAfterUserCustom) {
+					const puzzle = submittedById.get(missingId);
+					if (!puzzle) {
+						continue;
+					}
+
+					userCustomById.set(missingId, puzzle);
+					backfilled.push(puzzle);
+				}
+
+				submissionMatchedCount = backfilled.length;
+				if (backfilled.length > 0) {
+					await Promise.all(backfilled.map((puzzle) => saveUserCustomPuzzle(uid, puzzle)));
+				}
+
+				stillMissingAfterUserCustom = feedIdsMissingFromApproved.filter(
+					(id) => !userCustomById.has(id)
+				);
+			}
+
+			const fallbackFeedPuzzles =
+				stillMissingAfterUserCustom.length > 0
+					? await listPuzzlesByIds(stillMissingAfterUserCustom)
+					: [];
+			const fallbackById = new Map(fallbackFeedPuzzles.map((puzzle) => [puzzle.id, puzzle]));
+			const unresolvedFeedIds = stillMissingAfterUserCustom.filter((id) => !fallbackById.has(id));
+
+			catalogPuzzles = [
+				...approved,
+				...feedIdsMissingFromApproved
+					.map((id) => userCustomById.get(id))
+					.filter((puzzle): puzzle is PuzzleDefinition => Boolean(puzzle)),
+				...feedIdsMissingFromApproved
+					.map((id) => fallbackById.get(id))
+					.filter((puzzle): puzzle is PuzzleDefinition => Boolean(puzzle))
+			];
+			feedPuzzleIds = hydratedUserData.feedPuzzleIds;
+			plays = hydratedUserData.plays;
+			streakSeeds = hydratedUserData.streakSeeds ?? {};
+
+			logFeedDebug('loadSignedInData', {
+				uid,
+				approvedCount: approved.length,
+				feedPuzzleIdCount: hydratedUserData.feedPuzzleIds.length,
+				legacyPuzzleIdMap,
+				missingFromApprovedCount: feedIdsMissingFromApproved.length,
+				userCustomMatchedCount: userCustomFeedPuzzles.length,
+				submissionMatchedCount,
+				fallbackMatchedCount: fallbackFeedPuzzles.length,
+				unresolvedFeedIds
+			});
 
 			if (isCurrentUserAdmin) {
 				pendingSubmissions = await listPendingPuzzleSubmissions();
@@ -308,6 +475,8 @@
 		addPuzzlesToFeed([nextPuzzle]);
 
 		if ($authSession.status === 'signed_in' && $authSession.user) {
+			await saveUserCustomPuzzle($authSession.user.uid, nextPuzzle);
+
 			const submissionId = await savePuzzleSubmission({
 				uid: $authSession.user.uid,
 				email: $authSession.user.email,
