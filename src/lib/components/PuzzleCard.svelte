@@ -17,15 +17,20 @@
 	type Props = {
 		puzzle: PuzzleLike;
 		actions?: Snippet;
+		descriptionMode?: 'toggle' | 'always';
 	};
 
-	let { puzzle, actions }: Props = $props();
+	let { puzzle, actions, descriptionMode = 'toggle' }: Props = $props();
 
 	let expanded = $state(false);
 
 	const imageUrl = $derived(getPuzzleDisplayImageUrl(puzzle));
 
 	function toggleExpanded() {
+		if (descriptionMode === 'always') {
+			return;
+		}
+
 		expanded = !expanded;
 	}
 </script>
@@ -36,7 +41,7 @@
 	{/snippet}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="card-body" onclick={toggleExpanded}>
+	<div class="card-body" class:expandable={descriptionMode === 'toggle'} onclick={toggleExpanded}>
 		{#if imageUrl}
 			<img class="puzzle-image" src={imageUrl} alt={`${puzzle.title} preview`} />
 		{/if}
@@ -45,7 +50,7 @@
 				<Tag>{PUZZLE_TAG_LABELS[tag] ?? tag}</Tag>
 			{/each}
 		</div>
-		{#if expanded && puzzle.description}
+		{#if puzzle.description && (descriptionMode === 'always' || expanded)}
 			<p class="description">{puzzle.description}</p>
 		{/if}
 	</div>
@@ -69,6 +74,9 @@
 		gap: 0.5rem;
 		text-align: left;
 		width: 100%;
+	}
+
+	.card-body.expandable {
 		cursor: pointer;
 	}
 
