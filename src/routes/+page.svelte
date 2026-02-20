@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
-	import { Page, Bar, Card, TabBar, TabItem } from 'contain-css-svelte';
+	import { Page, Bar, Card, Container, TabBar, TabItem } from 'contain-css-svelte';
 	import {
 		authSession,
 		createEmailPasswordAccount,
@@ -555,6 +555,7 @@
 			description?: string;
 			tags: PuzzleDefinition['tags'];
 			siteName?: string;
+			ranking?: number;
 		}
 	) {
 		try {
@@ -620,7 +621,7 @@
 
 <Page>
 	{#snippet header()}
-		<Bar bg="var(--primary-bg)" fg="var(--primary-fg)">
+		<Bar bg="var(--primary-bg)" fg="var(--primary-fg)" --bar-margin-bottom="0">
 			<div class="header-row">
 				<h1>Daily Puzzle Feed</h1>
 				{#if $authSession.status === 'signed_in'}
@@ -667,15 +668,17 @@
 		{/if}
 
 		{#if activeTab === 'feed'}
-			<MyFeedPanel
-				{feedPuzzles}
-				{plays}
-				{streakSeeds}
-				onPlayClick={handlePlayClick}
-				onMarkPlayed={handleMarkPlayed}
-				onRemove={removePuzzleFromFeed}
-				onSetStreakSeed={handleSetStreakSeed}
-			/>
+			<Container>
+				<MyFeedPanel
+					{feedPuzzles}
+					{plays}
+					{streakSeeds}
+					onPlayClick={handlePlayClick}
+					onMarkPlayed={handleMarkPlayed}
+					onRemove={removePuzzleFromFeed}
+					onSetStreakSeed={handleSetStreakSeed}
+				/>
+			</Container>
 		{:else if activeTab === 'add'}
 			<PuzzleCatalogPicker
 				catalog={catalogPuzzles}
@@ -691,13 +694,15 @@
 				onSubmitPuzzle={addCustomPuzzle}
 			/>
 		{:else if activeTab === 'admin' && isCurrentUserAdmin}
-			<PuzzleApprovalPanel
-				submissions={pendingSubmissions}
-				isBusy={isReviewBusy}
-				onSaveEdit={handleSaveSubmissionEdit}
-				onApprove={handleApproveSubmission}
-				onReject={handleRejectSubmission}
-			/>
+			<Container>
+				<PuzzleApprovalPanel
+					submissions={pendingSubmissions}
+					isBusy={isReviewBusy}
+					onSaveEdit={handleSaveSubmissionEdit}
+					onApprove={handleApproveSubmission}
+					onReject={handleRejectSubmission}
+				/>
+			</Container>
 		{/if}
 	{/if}
 </Page>
@@ -707,9 +712,17 @@
 		align-items: center;
 		display: flex;
 		flex-wrap: wrap;
-		gap: 1rem;
+		column-gap: var(--gap);
 		justify-content: space-between;
 		width: 100%;
+	}
+
+	@media (max-width: 700px) {
+		.header-row {
+			justify-content: center;
+			text-align: center;
+			font-size: 0.8rem;
+		}
 	}
 
 	h1 {

@@ -55,6 +55,7 @@ export type PuzzleDefinition = {
 	siteName?: string;
 	active: boolean;
 	source: 'seed' | 'user' | 'canonical';
+	ranking?: number;
 };
 
 export type PuzzleDraftInput = {

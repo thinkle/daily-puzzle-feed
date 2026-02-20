@@ -13,6 +13,7 @@
 		description?: string;
 		tags: PuzzleTag[];
 		siteName?: string;
+		ranking?: number;
 	};
 
 	type Props = {
@@ -29,6 +30,7 @@
 	let description = $state(untrack(() => initial.description ?? ''));
 	let siteName = $state(untrack(() => initial.siteName ?? ''));
 	let tags = $state<PuzzleTag[]>(untrack(() => [...initial.tags]));
+	let rankingStr = $state(untrack(() => String(initial.ranking ?? 0)));
 
 	function toggleTag(tag: PuzzleTag, checked: boolean) {
 		if (checked && !tags.includes(tag)) {
@@ -47,7 +49,8 @@
 			canonicalUrl,
 			description,
 			tags,
-			siteName
+			siteName,
+			ranking: Number.parseInt(rankingStr, 10) || 0
 		});
 	}
 </script>
@@ -84,6 +87,10 @@
 				{/each}
 			</div>
 		</FormItem>
+		<FormItem>
+			{#snippet label()}Ranking (higher = more prominent){/snippet}
+			<Input type="number" bind:value={rankingStr} min="0" --input-width="8rem" />
+		</FormItem>
 	</Form>
 	<div class="actions">
 		<Button primary disabled={isBusy} onclick={handleSave}>Save</Button>
@@ -93,21 +100,21 @@
 
 <style>
 	.edit-form {
-		border: 1px solid var(--border-color);
-		border-radius: var(--border-radius, 8px);
-		padding: 1rem;
+		border: var(--border-width, 1px) var(--border-style, solid) var(--border-color);
+		border-radius: var(--border-radius);
+		padding: var(--padding);
 	}
 
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.4rem;
-		margin-top: 0.5rem;
+		gap: var(--space-md);
+		margin-top: var(--space-lg);
 	}
 
 	.tag-grid {
 		display: grid;
-		gap: 0.35rem;
+		gap: var(--space-md);
 		grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
 	}
 </style>
