@@ -106,11 +106,11 @@ h1 {
 	}
 }
 
-/* Let's add some responsive styles... on Mobile we want... */
 @media (max-width: 650px) {
 	:root {
 		--tab-bar-gap: 2px;
-		--bar-height: auto; /* Let the content dictate height on mobile, but keep it tight */
+		--bar-height: auto;
 		--tab-bar-height: 2em;
+		--tab-padding: var(--space-md);
 	}
 }
