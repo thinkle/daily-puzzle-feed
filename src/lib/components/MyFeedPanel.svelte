@@ -198,7 +198,9 @@
 		{#if donePuzzles.length > 0}
 			<span class="progress-text">{donePuzzles.length} of {feedPuzzles.length} done today</span>
 		{:else if feedPuzzles.length > 0}
-			<span class="progress-text">{feedPuzzles.length} puzzle{feedPuzzles.length === 1 ? '' : 's'} to do</span>
+			<span class="progress-text"
+				>{feedPuzzles.length} puzzle{feedPuzzles.length === 1 ? '' : 's'} to do</span
+			>
 		{/if}
 		{#if feedPuzzles.length > 0}
 			<Button secondary onclick={() => (isEditMode = !isEditMode)}>
@@ -214,27 +216,35 @@
 	{#if feedPuzzles.length === 0}
 		<p>No puzzles in your feed yet. Add some from the "Add Puzzle" tab!</p>
 	{:else}
-		{#if sortedPendingPuzzles.length > 0}
-			<ul class="puzzle-list">
-				{#each sortedPendingPuzzles as puzzle (puzzle.id)}
-					{@render puzzleRow(puzzle)}
-				{/each}
-			</ul>
-		{:else}
-			<p class="all-done">All done for today!</p>
-		{/if}
-		{#if sortedDonePuzzles.length > 0}
-			<Accordion>
-				<details open={sortedPendingPuzzles.length === 0}>
-					<summary>Done today ({sortedDonePuzzles.length})</summary>
-					<ul class="puzzle-list">
-						{#each sortedDonePuzzles as puzzle (puzzle.id)}
-							{@render puzzleRow(puzzle)}
-						{/each}
-					</ul>
-				</details>
-			</Accordion>
-		{/if}
+		<div class="feed-list-group">
+			{#if sortedPendingPuzzles.length > 0}
+				<ul class="puzzle-list">
+					{#each sortedPendingPuzzles as puzzle (puzzle.id)}
+						{@render puzzleRow(puzzle)}
+					{/each}
+				</ul>
+			{:else}
+				<p class="all-done">All done for today!</p>
+			{/if}
+			{#if sortedDonePuzzles.length > 0}
+				<Accordion
+					--accordion-wrapper-border="none"
+					--accordion-wrapper-padding="0"
+					--accordion-gap="0"
+					--accordion-summary-square-radius="0"
+					--accordion-summary-border="none"
+				>
+					<details open={sortedPendingPuzzles.length === 0}>
+						<summary>Done today ({sortedDonePuzzles.length})</summary>
+						<ul class="puzzle-list">
+							{#each sortedDonePuzzles as puzzle (puzzle.id)}
+								{@render puzzleRow(puzzle)}
+							{/each}
+						</ul>
+					</details>
+				</Accordion>
+			{/if}
+		</div>
 	{/if}
 </section>
 
@@ -261,13 +271,18 @@
 		font-size: 0.9em;
 	}
 
-	.puzzle-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
+	.feed-list-group {
 		border: var(--border-width, 1px) var(--border-style, solid) var(--border-color);
 		border-radius: var(--border-radius);
 		overflow: hidden;
+		max-width: 800px;
+	}
+
+	.puzzle-list {
+		max-width: 800px;
+		list-style: none;
+		margin: 0;
+		padding: 0;
 	}
 
 	.puzzle-row {
@@ -381,5 +396,4 @@
 			gap: var(--space);
 		}
 	}
-
 </style>

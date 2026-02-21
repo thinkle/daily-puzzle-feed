@@ -21,3 +21,22 @@
 	font-weight: 1 800;
 	font-display: swap;
 }
+
+@font-face {
+	font-family: 'Roslindale Display Condensed';
+	src: url('/fonts/RoslindaleV2-DisplayCondensedBold.woff2') format('woff2');
+	font-weight: 700;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Bungee Widths';
+	src: url('/fonts/BungeeWidths-Regular.woff2') format('woff2');
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Pomfret';
+	src: url('/fonts/Pomfret-Regular.woff2') format('woff2');
+	font-display: swap;
+}

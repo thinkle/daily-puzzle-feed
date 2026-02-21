@@ -1,7 +1,13 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import ContainBase from '$lib/components/ContainBase.svelte';
+	import { initTheme } from '$lib/stores/theme.svelte';
 
 	let { children } = $props();
+
+	onMount(() => {
+		initTheme();
+	});
 </script>
 
 <svelte:head>
