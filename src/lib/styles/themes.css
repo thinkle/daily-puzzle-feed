@@ -1,0 +1,175 @@
+/*
+ * Theme definitions — each class overrides :root custom properties.
+ * Apply one of these classes to <html> to switch themes.
+ * Default (no class / .theme-marquee) uses the :root values in contain-base.css.
+ */
+
+/* ────────────────────────────────────────────────────────
+   Newsprint — warm cream, dark ink, classic serif headings
+   ──────────────────────────────────────────────────────── */
+.theme-newsprint {
+	--bg: #f5f0e8;
+	--fg: #2a2520;
+	--primary-bg: #b5402a;
+	--primary-fg: #fdf6f0;
+	--secondary-bg: #e8e0d4;
+	--secondary-fg: #3a3430;
+	--inactive-bg: #ddd6ca;
+	--inactive-fg: #7a7068;
+
+	--success-bg: #3a7a3a;
+	--success-fg: #f5faf5;
+	--danger-bg: #c43a2a;
+	--danger-fg: #fff5f3;
+	--info-bg: #2a6a8a;
+	--info-fg: #f0f8ff;
+	--warning-bg: #d4890a;
+	--warning-fg: #2a2520;
+
+	--border-color: #c4b8a8;
+	--focus-color: #b5402a;
+	--focus-shadow-color: color-mix(in srgb, #b5402a 30%, transparent);
+	--shadow-color: color-mix(in srgb, #000000 15%, transparent);
+
+	--button-border: 1px solid color-mix(in srgb, var(--fg) 18%, transparent);
+	--input-bg: #faf7f2;
+	--input-fg: var(--fg);
+	--input-border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent);
+
+	--tile-bg: #faf7f2;
+	--tile-border: 1px solid var(--border-color);
+	--tile-checkbox-checked-bg: var(--primary-bg);
+	--tile-checkbox-checked-fg: var(--primary-fg);
+	--tile-checkbox-bg: var(--secondary-bg);
+
+	--heading-font-family: 'Roslindale Display Condensed', Georgia, serif;
+	--container-bg: #faf7f2;
+	--container-fg: #2a2520;
+}
+
+body.theme-newsprint {
+	background:
+		repeating-linear-gradient(
+			to bottom,
+			color-mix(in srgb, var(--fg) 4%, transparent) 0 1px,
+			transparent 1px 2.4rem
+		),
+		var(--bg);
+}
+
+/* ────────────────────────────────────────────────────────
+   Arcade — neon on dark, bold blocky type
+   ──────────────────────────────────────────────────────── */
+.theme-arcade {
+	--bg: #0a0e1a;
+	--fg: #e0f4ff;
+	--primary-bg: #ff2d7b;
+	--primary-fg: #ffffff;
+	--secondary-bg: #1a2440;
+	--secondary-fg: #b0d4f0;
+	--inactive-bg: #162038;
+	--inactive-fg: #6a8aaa;
+
+	--success-bg: #00cc66;
+	--success-fg: #001a0a;
+	--danger-bg: #ff3344;
+	--danger-fg: #ffffff;
+	--info-bg: #00aaff;
+	--info-fg: #001122;
+	--warning-bg: #ffaa00;
+	--warning-fg: #1a1000;
+
+	--border-color: #2a3a60;
+	--focus-color: #00ffcc;
+	--focus-shadow-color: color-mix(in srgb, #00ffcc 40%, transparent);
+	--shadow-color: color-mix(in srgb, #000000 80%, #0044aa 20%);
+
+	--button-border: 1px solid color-mix(in srgb, var(--fg) 15%, transparent);
+	--button-hover-filter: brightness(1.15) saturate(1.1);
+	--input-bg: #0e1428;
+	--input-fg: var(--fg);
+	--input-border: 1px solid color-mix(in srgb, #00aaff 30%, transparent);
+
+	--tile-bg: #0e1428;
+	--tile-border: 1px solid color-mix(in srgb, var(--primary-bg) 30%, var(--border-color));
+	--tile-checkbox-checked-bg: var(--primary-bg);
+	--tile-checkbox-checked-fg: var(--primary-fg);
+	--tile-checkbox-bg: var(--secondary-bg);
+
+	--heading-font-family: 'Bungee Widths', Impact, sans-serif;
+	--container-bg: #0e1428;
+	--container-fg: #e0f4ff;
+}
+
+body.theme-arcade {
+	background:
+		radial-gradient(
+			130% 72% at 50% -10%,
+			color-mix(in srgb, var(--primary-bg) 12%, transparent),
+			transparent 62%
+		),
+		repeating-linear-gradient(
+			to bottom,
+			color-mix(in srgb, #00aaff 5%, transparent) 0 1px,
+			transparent 1px 3rem
+		),
+		var(--bg);
+}
+
+/* ────────────────────────────────────────────────────────
+   Coffeehouse — soft dark, muted earth tones, cozy feel
+   ──────────────────────────────────────────────────────── */
+.theme-coffeehouse {
+	--bg: #1a1816;
+	--fg: #e8dfd2;
+	--primary-bg: #c47a5a;
+	--primary-fg: #1a1210;
+	--secondary-bg: #252220;
+	--secondary-fg: #d4c8b8;
+	--inactive-bg: #302c28;
+	--inactive-fg: #9a8e80;
+
+	--success-bg: #5a7a4a;
+	--success-fg: #f0f4ea;
+	--danger-bg: #a84a3a;
+	--danger-fg: #fff0ec;
+	--info-bg: #4a7080;
+	--info-fg: #eaf4f8;
+	--warning-bg: #b8863a;
+	--warning-fg: #1a1210;
+
+	--border-color: #3e3832;
+	--focus-color: #d4946a;
+	--focus-shadow-color: color-mix(in srgb, #d4946a 35%, transparent);
+	--shadow-color: color-mix(in srgb, #000000 60%, #3a2a1a 40%);
+
+	--button-border: 1px solid color-mix(in srgb, var(--fg) 15%, transparent);
+	--input-bg: #14120f;
+	--input-fg: var(--fg);
+	--input-border: 1px solid color-mix(in srgb, var(--fg) 18%, transparent);
+
+	--tile-bg: #1e1c18;
+	--tile-border: 1px solid color-mix(in srgb, var(--primary-bg) 25%, var(--border-color));
+	--tile-checkbox-checked-bg: var(--primary-bg);
+	--tile-checkbox-checked-fg: var(--primary-fg);
+	--tile-checkbox-bg: var(--secondary-bg);
+
+	--heading-font-family: 'Pomfret', Georgia, serif;
+	--container-bg: #1e1c18;
+	--container-fg: #e8dfd2;
+}
+
+body.theme-coffeehouse {
+	background:
+		radial-gradient(
+			130% 72% at 50% -10%,
+			color-mix(in srgb, var(--primary-bg) 10%, transparent),
+			transparent 62%
+		),
+		repeating-linear-gradient(
+			to bottom,
+			color-mix(in srgb, var(--fg) 4%, transparent) 0 1px,
+			transparent 1px 2.4rem
+		),
+		var(--bg);
+}

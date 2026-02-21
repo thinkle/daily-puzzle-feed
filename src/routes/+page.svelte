@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
-	import { Page, Bar, Card, Container, TabBar, TabItem } from 'contain-css-svelte';
+	import { Page, Bar, Card, Container, MiniButton, TabBar, TabItem } from 'contain-css-svelte';
+	import { cycleTheme, theme, THEME_LABELS } from '$lib/stores/theme.svelte';
 	import {
 		authSession,
 		createEmailPasswordAccount,
@@ -623,7 +624,10 @@
 	{#snippet header()}
 		<Bar bg="var(--primary-bg)" fg="var(--primary-fg)" --bar-margin-bottom="0">
 			<div class="header-row">
-				<h1>Daily Puzzle Feed</h1>
+				<div class="title-group">
+					<h1>Daily Puzzle Feed</h1>
+					<MiniButton onclick={cycleTheme} aria-label="Switch theme: {THEME_LABELS[theme.current]}" --button-margin="0"><svg width="1.1em" height="1.1em" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1C4.1 1 1 3.7 1 7c0 2 1.2 3.7 3 4.7 0 1.3-1 2.3-1 2.3s2.5 0 3.5-1c.5.1 1 .1 1.5.1 3.9 0 7-2.7 7-6S11.9 1 8 1zM4.5 8.5a1 1 0 110-2 1 1 0 010 2zm2-3a1 1 0 110-2 1 1 0 010 2zm3 0a1 1 0 110-2 1 1 0 010 2zm2 3a1 1 0 110-2 1 1 0 010 2z"/></svg></MiniButton>
+				</div>
 				{#if $authSession.status === 'signed_in'}
 					<AuthStatusBar
 						isBusy={isAuthActionPending}
@@ -723,6 +727,14 @@
 			text-align: center;
 			font-size: 0.8rem;
 		}
+	}
+
+	.title-group {
+		display: flex;
+		align-items: center;
+		gap: var(--space-md);
+		--button-bg: color-mix(in srgb, var(--primary-fg) 20%, transparent);
+		--button-fg: var(--primary-fg);
 	}
 
 	h1 {
