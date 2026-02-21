@@ -106,11 +106,16 @@ h1 {
 	}
 }
 
-/* Let's add some responsive styles... on Mobile we want... */
+/* Mobile tab styles: compact but text must fit on one line */
 @media (max-width: 650px) {
 	:root {
-		--tab-bar-gap: 2px;
-		--bar-height: auto; /* Let the content dictate height on mobile, but keep it tight */
-		--tab-bar-height: 2em;
+		--tab-bar-gap: 0;
+		--tab-bar-height: auto;
+		--tab-padding: 0.2rem 0.4rem;
+	}
+
+	.tabs button {
+		white-space: nowrap;
+		font-size: 0.85em;
 	}
 }
