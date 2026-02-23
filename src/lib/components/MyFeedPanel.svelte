@@ -226,6 +226,8 @@
 					iconSize="2rem"
 					iconBorderRadius="var(--border-radius)"
 					itemMinHeight="auto"
+					actionFlexDirection="column"
+					--data-list-item-action-align="flex-end"
 					--data-list-border="none"
 					--data-list-shadow-distance="0"
 					--data-list-shadow-blur="0"
