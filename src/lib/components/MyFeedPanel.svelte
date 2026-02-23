@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { Accordion, Button, ButtonLink, Input, Tag } from 'contain-css-svelte';
+	import {
+		Accordion,
+		Button,
+		ButtonLink,
+		DataList,
+		DataListItem,
+		Input,
+		Tag
+	} from 'contain-css-svelte';
 	import { getPuzzleDisplayImageUrl } from '$lib/model/puzzle';
 	import type { PuzzleDefinition } from '$lib/model/puzzle';
 	import {
@@ -80,35 +88,32 @@
 	{@const isVisited = todayPlay?.progress === 'visited'}
 	{@const isPlayed = todayPlay?.progress === 'played'}
 	{@const streak = getStreak(puzzle.id)}
-	{@const seed = streakSeeds[puzzle.id]}
 	{@const hasPlayableUrl = Boolean(puzzle.canonicalUrl)}
 	{@const imageUrl = getPuzzleDisplayImageUrl(puzzle) ?? puzzle.image?.faviconUrl}
-	<li class="puzzle-row" class:visited={isVisited} class:played={isPlayed}>
-		<div class="row-info">
-			<div class="row-main">
-				{#if imageUrl}
-					<img class="row-thumb" src={imageUrl} alt="" />
-				{/if}
-				<span class="row-title">{puzzle.title}</span>
-				{#if isPlayed}
-					{#if todayPlay.outcome === 'won'}
-						<Tag success>Won</Tag>
-					{:else if todayPlay.outcome === 'lost'}
-						<Tag danger>Lost</Tag>
-					{:else if todayPlay.outcome === 'completed' || todayPlay.outcome === 'unknown'}
-						<Tag info>Completed</Tag>
-					{:else}
-						<Tag info>Completed</Tag>
-					{/if}
-				{:else if isVisited}
-					<Tag info>Awaiting result</Tag>
+	<DataListItem>
+		{#snippet start()}
+			{#if imageUrl}
+				<img src={imageUrl} alt="" />
+			{/if}
+		{/snippet}
+		<span class="row-title">{puzzle.title}</span>
+		<div class="row-meta">
+			{#if isPlayed}
+				{#if todayPlay.outcome === 'won'}
+					<Tag success>Won</Tag>
+				{:else if todayPlay.outcome === 'lost'}
+					<Tag danger>Lost</Tag>
+				{:else if todayPlay.outcome === 'completed' || todayPlay.outcome === 'unknown'}
+					<Tag info>Completed</Tag>
 				{:else}
-					<Tag>Not started</Tag>
+					<Tag info>Completed</Tag>
 				{/if}
-				{#if !hasPlayableUrl}
-					<Tag danger>Missing URL</Tag>
-				{/if}
-			</div>
+			{:else if isVisited}
+				<Tag info>Awaiting result</Tag>
+			{/if}
+			{#if !hasPlayableUrl}
+				<Tag danger>Missing URL</Tag>
+			{/if}
 			<div class="streak-controls">
 				<span class="streak-label">Streak</span>
 				<Button
@@ -126,7 +131,30 @@
 				</Button>
 			</div>
 		</div>
-		<div class="row-actions-primary">
+		{#if editingSeedFor === puzzle.id}
+			<div class="seed-form">
+				<span class="seed-label">Current streak:</span>
+				<Input
+					type="number"
+					min="1"
+					placeholder="0"
+					--input-width="6rem"
+					--input-padding="0.3rem 0.5rem"
+					--input-bg="var(--secondary-bg)"
+					--input-fg="var(--secondary-fg)"
+					--input-border="var(--border-width, 1px) var(--border-style, solid) var(--border-color)"
+					bind:value={seedInputValue}
+					onkeydown={(e) => e.key === 'Enter' && saveSeed(puzzle.id)}
+				/>
+				<Button primary --button-padding="0.3rem 0.65rem" onclick={() => saveSeed(puzzle.id)}
+					>Save</Button
+				>
+				<Button --button-padding="0.3rem 0.65rem" onclick={() => (editingSeedFor = null)}
+					>Cancel</Button
+				>
+			</div>
+		{/if}
+		{#snippet end()}
 			{#if !isVisited && !isPlayed}
 				{#if hasPlayableUrl}
 					<ButtonLink
@@ -158,38 +186,13 @@
 					</ButtonLink>
 				{/if}
 			{/if}
-		</div>
-		<div class="row-actions-secondary">
 			{#if isEditMode}
 				<Button danger --button-padding="0.3rem 0.65rem" onclick={() => onRemove(puzzle.id)}
 					>Remove</Button
 				>
 			{/if}
-		</div>
-		{#if editingSeedFor === puzzle.id}
-			<div class="seed-form">
-				<span class="seed-label">Current streak:</span>
-				<Input
-					type="number"
-					min="1"
-					placeholder="0"
-					--input-width="6rem"
-					--input-padding="0.3rem 0.5rem"
-					--input-bg="var(--secondary-bg)"
-					--input-fg="var(--secondary-fg)"
-					--input-border="var(--border-width, 1px) var(--border-style, solid) var(--border-color)"
-					bind:value={seedInputValue}
-					onkeydown={(e) => e.key === 'Enter' && saveSeed(puzzle.id)}
-				/>
-				<Button primary --button-padding="0.3rem 0.65rem" onclick={() => saveSeed(puzzle.id)}
-					>Save</Button
-				>
-				<Button --button-padding="0.3rem 0.65rem" onclick={() => (editingSeedFor = null)}
-					>Cancel</Button
-				>
-			</div>
-		{/if}
-	</li>
+		{/snippet}
+	</DataListItem>
 {/snippet}
 
 <section class="my-feed">
@@ -218,11 +221,19 @@
 	{:else}
 		<div class="feed-list-group">
 			{#if sortedPendingPuzzles.length > 0}
-				<ul class="puzzle-list">
+				<DataList
+					maxWidth="800px"
+					iconSize="2rem"
+					iconBorderRadius="var(--border-radius)"
+					itemMinHeight="auto"
+					--data-list-border="none"
+					--data-list-shadow-distance="0"
+					--data-list-shadow-blur="0"
+				>
 					{#each sortedPendingPuzzles as puzzle (puzzle.id)}
 						{@render puzzleRow(puzzle)}
 					{/each}
-				</ul>
+				</DataList>
 			{:else}
 				<p class="all-done">All done for today!</p>
 			{/if}
@@ -236,11 +247,20 @@
 				>
 					<details open={sortedPendingPuzzles.length === 0}>
 						<summary>Done today ({sortedDonePuzzles.length})</summary>
-						<ul class="puzzle-list">
+						<DataList
+							stackable
+							maxWidth="800px"
+							iconSize="2rem"
+							iconBorderRadius="var(--border-radius)"
+							itemMinHeight="auto"
+							--data-list-border="none"
+							--data-list-shadow-distance="0"
+							--data-list-shadow-blur="0"
+						>
 							{#each sortedDonePuzzles as puzzle (puzzle.id)}
 								{@render puzzleRow(puzzle)}
 							{/each}
-						</ul>
+						</DataList>
 					</details>
 				</Accordion>
 			{/if}
@@ -278,75 +298,16 @@
 		max-width: 800px;
 	}
 
-	.puzzle-list {
-		max-width: 800px;
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-
-	.puzzle-row {
-		display: flex;
-		align-items: center;
-		gap: var(--space-lg);
-		padding: var(--space-lg) var(--padding);
-		flex-wrap: wrap;
-		border-bottom: var(--border-width, 1px) var(--border-style, solid) var(--border-color);
-		--button-margin: 0;
-	}
-
-	.puzzle-row:last-child {
-		border-bottom: none;
-	}
-
-	.puzzle-row.visited {
-		background: color-mix(in srgb, var(--info-bg) 10%, var(--bg));
-	}
-
-	.puzzle-row.played {
-		opacity: 0.75;
-	}
-
-	.row-info {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-lg);
-		flex: 1;
-		min-width: 8rem;
-		flex-wrap: wrap;
-	}
-
-	.row-main {
-		display: flex;
-		align-items: center;
-		gap: var(--space-md);
-		flex-wrap: wrap;
-	}
-
-	.row-thumb {
-		width: 2rem;
-		height: 2rem;
-		border-radius: var(--border-radius);
-		object-fit: cover;
-		flex-shrink: 0;
-	}
-
 	.row-title {
 		font-weight: var(--bold);
 		font-family: var(--heading-font-family);
 	}
 
-	.row-actions-primary {
+	.row-meta {
 		display: flex;
-		flex-wrap: wrap;
+		align-items: center;
 		gap: var(--space-md);
-		align-items: center;
-	}
-
-	.row-actions-secondary {
-		display: flex;
-		align-items: center;
+		flex-wrap: wrap;
 	}
 
 	.streak-controls {
@@ -361,7 +322,6 @@
 	}
 
 	.seed-form {
-		flex: 1 0 100%;
 		display: flex;
 		align-items: center;
 		gap: var(--space-lg);
@@ -375,19 +335,6 @@
 	}
 
 	@media (max-width: 700px) {
-		.puzzle-row {
-			gap: var(--space);
-			padding: var(--space-md) var(--space-md);
-		}
-
-		.row-info {
-			gap: var(--space);
-		}
-
-		.row-main {
-			gap: var(--space);
-		}
-
 		.feed-header {
 			gap: var(--space-md);
 		}

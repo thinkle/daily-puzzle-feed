@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { Button, Container, Form, FormItem, GridLayout, Input } from 'contain-css-svelte';
+	import {
+		Button,
+		Container,
+		DataList,
+		DataListItem,
+		Form,
+		FormItem,
+		GridLayout,
+		Input
+	} from 'contain-css-svelte';
 	import {
 		PUZZLE_TAG_LABELS,
 		PUZZLE_TAG_OPTIONS,
@@ -242,17 +251,21 @@
 
 			<!-- Mobile: compact list -->
 			<div class="mobile-view">
-				<ul class="catalog-list">
+				<DataList
+					iconSize="2rem"
+					iconBorderRadius="var(--border-radius)"
+					itemMinHeight="auto"
+				>
 					{#each sortedCatalog as puzzle (puzzle.id)}
 						{#if editingId === puzzle.id}
-							<li class="catalog-row-edit">
+							<DataListItem itemMinHeight="auto">
 								<PuzzleEditForm
 									initial={puzzle}
 									isBusy={isEditBusy}
 									onSave={(update) => handleSaveEdit(puzzle, update)}
 									onCancel={() => (editingId = null)}
 								/>
-							</li>
+							</DataListItem>
 						{:else}
 							<PuzzleCatalogRow
 								{puzzle}
@@ -263,7 +276,7 @@
 							/>
 						{/if}
 					{/each}
-				</ul>
+				</DataList>
 			</div>
 		{/if}
 	</Container>
@@ -293,21 +306,6 @@
 	.sort-label {
 		font-size: 0.85em;
 		color: var(--secondary-fg, var(--fg));
-	}
-
-	.catalog-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		border: var(--border-width, 1px) var(--border-style, solid) var(--border-color);
-		border-radius: var(--border-radius);
-		overflow: hidden;
-	}
-
-	.catalog-row-edit {
-		list-style: none;
-		padding: var(--space-md);
-		border-bottom: var(--border-width, 1px) var(--border-style, solid) var(--border-color);
 	}
 
 	/* Desktop: show cards, hide list */
